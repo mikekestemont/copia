@@ -1,8 +1,6 @@
-def sequence2abundance():
-    pass
+from collections import Counter
 
-def abundance2sequence():
-    pass
-
-def rmse():
-    pass
+def to_abundance(species):
+    """
+    """
+    return tuple(Counter(species).values())
