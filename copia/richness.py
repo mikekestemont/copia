@@ -5,7 +5,9 @@ Bias-correcting richness estimators for abundance data
 import warnings
 
 import numpy as np
-import scipy.stats as stats
+import scipy.stats
+
+from .stats import *
 
 
 def empirical_richness(x):
@@ -181,10 +183,6 @@ def jackknife(x, k=5, return_order=False, return_ci=False,
     Journal of Statistical Software (2011), 1-15.
     """
 
-    def dbinom(x, size, prob):
-        d = stats.binom(size, prob).pmf(x)
-        return 1 if np.isnan(d) else d
-
     x = np.array(x, dtype=np.int64)
 
     k0, k = k, min(len(np.unique(x)) - 1, 10)
@@ -221,7 +219,7 @@ def jackknife(x, k=5, return_order=False, return_ci=False,
                                      (total - 1))
             gene[i - 1, 4] = (gene[i, 0] - gene[i - 1, 0]) / gene[i - 1, 2]
     
-    coe = stats.norm().ppf(1 - (1 - conf) / 2)
+    coe = scipy.stats.norm().ppf(1 - (1 - conf) / 2)
     x = gene[1:k + 1, 4] < coe
 
     if x.sum() == 0:
@@ -252,7 +250,7 @@ def jackknife(x, k=5, return_order=False, return_ci=False,
 
 
 def min_add_sample(x, solver='grid', search_space=(0, 100, 1e6),
-                  tolerance=1e-2):
+                  tolerance=1e-1):
     """
     Minimum additional sampling estimate (of population size)
 
@@ -329,7 +327,7 @@ estimators = {'empirical': empirical_richness,
               'minsample': min_add_sample}
 
 
-def richness(x, method=None, **kwargs):
+def richness(x, method=None, CI=False, conf=.95, **kwargs):
     """
     Wrapper for various bias-corrected richness functions
 
@@ -356,5 +354,9 @@ def richness(x, method=None, **kwargs):
     if method is None:
         method = 'empirical'
 
-    estimate = estimators[method](x, **kwargs)
+    if CI:
+        estimate = bootstrap(x, fn=estimators[method])
+    else:
+        estimate = estimators[method](x, **kwargs)
+    
     return estimate
