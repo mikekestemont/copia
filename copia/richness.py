@@ -43,8 +43,6 @@ def chao1(x):
     diversities among assemblages', Ecological research (2020), 292-314.
     """
 
-    x = np.array(x, dtype=np.float64)
-
     x = x[x > 0]
     n = x.sum()
     t = x.shape[0]
@@ -66,3 +64,11 @@ def jackknife():
 def min_add_sample():
     pass
 
+
+def richness(x, method=None, **kwargs):
+    x = np.asarray(x, dtype=np.float64)
+    if method is None:
+        method = "richness"
+
+    estimate = get_estimator(method)(x, **kwargs)
+    return estimate
