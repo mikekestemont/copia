@@ -7,13 +7,31 @@ import numpy as np
 import scipy.stats as stats
 
 
+def empirical_richness(x):
+    """
+    Empirical species richness of an assemblage
+
+    Parameters
+    ----------
+    x : 1D numpy array with shape (number of species)
+        An array representing the abundances (observed
+        counts) for each individual species. 
+
+    Returns
+    -------
+    richness : float
+        The empirically observed number of distinct species
+    """
+    return x[x > 0].shape[0]
+
+
 def chao1(x):
     """
     Chao1 estimate of bias-corrected species richness
 
     Parameters
     ----------
-    x : array-like of shape (number of species)
+    x : 1D numpy array with shape (number of species)
         An array representing the abundances (observed
         counts) for each individual species. 
 
@@ -63,7 +81,7 @@ def egghe_proot(x, alpha=150):
 
     Parameters
     ----------
-    x : array-like of shape (number of species)
+    x : 1D numpy array with shape (number of species)
         An array representing the abundances (observed
         counts) for each individual species.
     alpha : int (default = 150)
@@ -95,8 +113,6 @@ def egghe_proot(x, alpha=150):
     Journal of Informetrics (2008), 101–105.
     """
 
-    x = np.array(x, dtype=np.int64)
-
     ft = np.bincount(x)[1:]
     S = ft.sum()
 
@@ -120,7 +136,7 @@ def jackknife(x, k=5, return_order=False, return_ci=False,
 
     Parameters
     ----------
-    x : array-like of shape (number of species)
+    x : 1D numpy array with shape (number of species)
         An array representing the abundances (observed
         counts) for each individual species.
     k : int (default = 5)
@@ -237,10 +253,38 @@ def min_add_sample():
     pass
 
 
-def richness(x, method=None, **kwargs):
-    x = np.asarray(x, dtype=np.float64)
-    if method is None:
-        method = "richness"
+estimators = {'empirical': empirical_richness,
+              'chao1': chao1,
+              'egghe_proot': egghe_proot,
+              'jackknife': jackknife}
 
-    estimate = get_estimator(method)(x, **kwargs)
+
+def richness(x, method=None, **kwargs):
+    """
+    Wrapper for various bias-corrected richness functions
+
+    Parameters
+    ----------
+    x : array-like, with shape (number of species)
+        An array representing the abundances (observed
+        counts) for each individual species.
+    method : str (default = None)
+        One estimator of:
+            - 'chao1'
+            - 'egghe_proot'
+            - 'jackknife'
+            - 'minsample'
+            - 'empirical' (same as None)
+    **kwargs : additional parameters passed to selected method
+
+    Returns
+    -------
+    Consult the documentation of selected method.
+    """
+
+    x = np.array(x, dtype=np.int64)
+    if method is None:
+        method = 'empirical'
+
+    estimate = estimators[method](x, **kwargs)
     return estimate
