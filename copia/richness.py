@@ -7,7 +7,7 @@ import numpy as np
 
 def chao1(x):
     """
-    Estimate bias-corrected species richness in an assemblage.
+    Chao1 estimate of bias-corrected species richness
 
     Parameters
     ----------
@@ -18,7 +18,7 @@ def chao1(x):
     Returns
     -------
     richness : float
-        The chao1 estimate ($\hat{f_0}$) of the bias-corrected species richness:
+        Estimate ($\hat{f_0}$) of the bias-corrected species richness:
 
         $\hat{f_0} = \left\{\begin{aligned}
         \frac{(n - 1)}{n} \frac{f_1^2}{(2f_2)} \qquad if f_2 > 0;\\
@@ -57,8 +57,62 @@ def chao1(x):
         return f1 * (f1 - 1) / 2
 
 
-def egghe_proot():
-    pass
+def egghe_proot(x, alpha=150):
+    """
+    Egghe & Proot estimate of bias-corrected species richness
+
+    Parameters
+    ----------
+    x : array-like of shape (number of species)
+        An array representing the observed abundances (observed
+        counts for each individual species.
+    alpha : float
+        An estimate of the average print run
+
+    Returns
+    -------
+    richness : float
+        Estimate ($\hat{f_0}$) of the bias-corrected species richness:
+
+        $\hat{f_0} = \left( \frac{1}{1 + \frac{2f_2}{(a-1)f_1}} \right)^a$
+
+        With:
+            - $f_1$ = the number of species sighted exactly once in
+            the sample (singletons),
+            - $f_2$ = the number of species that were sighted twice
+            (doubletons)
+            - $\hat{f_0}$ = the estimated number of species that once 
+            existed in the assemblage, but which were sighted zero times, 
+            i.e. the number of undetected species.
+
+    References
+    -------
+    - L. Egghe and G. Proot, 'The estimation of the number of lost
+    multi-copy documents: A new type of informetrics theory', Journal
+    of Informetrics (2007), 257-268.
+    - Q.L. Burrell, 'Some comments on "The estimation of lost multi-copy
+    documents: A new type of informetrics theory" by Egghe and Proot',
+    Journal of Informetrics (2008), 101–105.
+    """
+
+
+    x = np.array(x, dtype=np.int64)
+
+    ft = np.bincount(x)[1:]
+    S = ft.sum()
+
+    P1 = (x == 1).sum()
+    P2 = (x == 2).sum()
+    P0 = (1 / (1 + (2 / (alpha - 1)) * (P2 / P1))) ** alpha
+
+    S_lost = S * (P0 / (1 - P0))
+    S_lost = S + S_lost
+
+    if not np.isinf(S_lost):
+        return S_lost
+    else:
+        return np.nan
+
 
 def jackknife():
     pass
