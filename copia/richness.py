@@ -2,6 +2,7 @@
 """
 Bias-correcting richness estimators for abundance data
 """
+import warnings
 
 import numpy as np
 import scipy.stats as stats
@@ -249,14 +250,83 @@ def jackknife(x, k=5, return_order=False, return_ci=False,
     else:
         return jackest
 
-def min_add_sample():
-    pass
+
+def min_add_sample(x, solver='grid', search_space=(0, 100, 1e6),
+                  tolerance=1e-2):
+    """
+    Minimum additional sampling estimate (of population size)
+
+    Parameters
+    ----------
+    x : array-like, with shape (number of species)
+        An array representing the abundances (observed
+        counts) for each individual species.
+    solver : str (default = 'grid')
+        Solver to find x* = the intersection between h() and v():
+            - 'grid': hardcode grid search (less precise, but recommended)
+            - 'fsolve': numpy optimization (more precise, less stable in practice)
+    search_space : 3-way tuple (default = (0, 100, 1e5))
+        Search space to be used in the grid search:
+            (start, end, stepsize)
+    tolerance : float (default = 1e-2)
+        Allowed divergence (from zero) in finding the intersection
+        between h() and v().
+
+    Returns
+    -------
+    estimate : float
+        Lower-bound estimate of the minimum additional samples
+        (observations) that would have to be taken to observe
+        each of the hypothesized species (i.e. $\hat{f_0}$) at
+        least once. (In some cases, this number can approximate
+        the estimated number of individuals in the original
+        population.)
+
+    References
+    -------
+    - A. Chao et al., 'Sufficient sampling for asymptotic minimum
+    species richness estimators', Ecology (2009), 1125-1133.
+    - M. Kestemont & F. Karsdorp, 'Estimating the Loss of Medieval 
+    Literature with an Unseen Species Model from Ecodiversity', 
+    Computational Humanities Research (2020), 44-55.
+    """
+
+    n = x.sum()
+    x = x[x > 0]
+    t = x.shape[0]
+    f1, f2 = (x == 1).sum(), (x == 2).sum()
+    
+    h = lambda x: 2 * f1 * (1 + x)
+    v = lambda x: np.exp(x * (2 * f2 / f1))
+    
+    if solver == 'grid':
+        search_space = np.linspace(*search_space)
+        hs = np.array(h(search_space))
+        vs = np.array(v(search_space))
+        diffs = np.abs(hs - vs)
+        x_ast = search_space[diffs.argmin()]
+
+    elif solver == 'fsolve':
+        from scipy.optimize import fsolve
+        def intersection(func1, func2, x0):
+            return fsolve(lambda x: func1(x) - func2(x), x0)[0]
+        x_ast = intersection(h, v, n)
+    
+    else:
+        raise ValueError(f'Unsupported "solver" argument: {solver}')
+    
+    diff_intersect = abs(h(x_ast) - v(x_ast))
+    if not diff_intersect < tolerance:
+        warnings.warn(f'Tolerance criterion not met: {diff_intersect} > {tolerance}')
+
+    return n * x_ast
 
 
 estimators = {'empirical': empirical_richness,
               'chao1': chao1,
               'egghe_proot': egghe_proot,
-              'jackknife': jackknife}
+              'jackknife': jackknife,
+              'minsample': min_add_sample}
 
 
 def richness(x, method=None, **kwargs):
