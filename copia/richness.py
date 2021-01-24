@@ -11,7 +11,7 @@ from scipy.optimize import fsolve
 from .stats import *
 
 
-def empirical_richness(x):
+def empirical_richness(x, species=True):
     """
     Empirical species richness of an assemblage
 
@@ -26,7 +26,10 @@ def empirical_richness(x):
     richness : float
         The empirically observed number of distinct species
     """
-    return x[x > 0].shape[0]
+    if species:
+        return x[x > 0].shape[0]
+    else:
+        return x.sum()
 
 
 def chao1(x):

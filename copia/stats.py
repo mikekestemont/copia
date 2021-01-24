@@ -1,5 +1,7 @@
 import numpy as np
 import scipy.stats
+from scipy.special import gammaln
+from tqdm import tqdm
 
 
 def dbinom(x, size, prob):
@@ -28,7 +30,7 @@ def bootstrap(x, fn, n_iter=1000, conf=.95):
     p, n = bt_prob(x), x.sum()
     data_bt = np.random.multinomial(n, p, n_iter)
     
-    bt_pro = np.array([fn(row) for row in data_bt])
+    bt_pro = np.array([fn(row) for row in tqdm(tuple(data_bt))])
     pro_mean = bt_pro.mean(0)
     
     lci_pro = -np.quantile(bt_pro, (1 - conf) / 2, axis=0) + pro_mean
@@ -66,3 +68,20 @@ def quantile(x, q, weights=None):
         cdf /= cdf[-1]
         cdf = np.append(0, cdf)
         return np.interp(q, cdf, x[idx]).tolist()
+
+
+def rarefaction_extrapolation(x, max_steps):
+    x, n = x[x > 0], x.sum()
+    def _sub(m):
+        if m <= n:
+            return np.sum(1 - np.array(
+                [np.exp(gammaln(n - i + 1) + gammaln(n - m + 1) - 
+                        gammaln(n - i - m + 1) - gammaln(n + 1)) if i <= (n - m) else
+                 0 for i in x]))
+        else:
+            S = (x > 0).sum()
+            f1, f2 = (x == 1).sum(), (x == 2).sum()
+            f0 = ((n - 1) / n * f1 * (f1 - 1) / 2) if f2 == 0 else ((n - 1) / n * f1**2 / 2 / f2)
+            A = n * f0 / (n * f0 + f1)
+            return S if f1 == 0 else (S + f0 * (1 - A**(m - n)))
+    return np.array([_sub(mi) for mi in range(1, max_steps)])
