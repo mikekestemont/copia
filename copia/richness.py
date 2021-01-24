@@ -6,6 +6,7 @@ import warnings
 
 import numpy as np
 import scipy.stats
+from scipy.optimize import fsolve
 
 from .stats import *
 
@@ -298,14 +299,13 @@ def min_add_sample(x, solver='grid', search_space=(0, 100, 1e6),
     v = lambda x: np.exp(x * (2 * f2 / f1))
     
     if solver == 'grid':
-        search_space = np.linspace(*search_space)
+        search_space = np.linspace(*[int(i) for i in search_space])
         hs = np.array(h(search_space))
         vs = np.array(v(search_space))
         diffs = np.abs(hs - vs)
         x_ast = search_space[diffs.argmin()]
 
     elif solver == 'fsolve':
-        from scipy.optimize import fsolve
         def intersection(func1, func2, x0):
             return fsolve(lambda x: func1(x) - func2(x), x0)[0]
         x_ast = intersection(h, v, n)
@@ -327,7 +327,7 @@ estimators = {'empirical': empirical_richness,
               'minsample': min_add_sample}
 
 
-def richness(x, method=None, CI=False, conf=.95, **kwargs):
+def diversity(x, method=None, CI=False, conf=.95, **kwargs):
     """
     Wrapper for various bias-corrected richness functions
 
