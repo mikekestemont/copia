@@ -171,8 +171,26 @@ def survival(assemblages, method='chao1'):
     plt.legend()
 
     return pd.DataFrame(survival_estimates,
-                        columns=['Labels', f'{method}', f'{method}-lCI', f'{method}-uCI'])
-        
+                        columns=['label', 'survival', 'lCI', 'uCI'])
+
+def survival_error(df):
+    estimates = df.sort_values('survival')
+    errors = np.array(list(zip(estimates['lCI'], estimates['uCI']))).T
+    errors[0] = estimates['survival'] - errors[0]
+    errors[1] -=  estimates['survival']
+
+    fig, ax = plt.subplots(figsize=(12, 4))
+    ax.errorbar(np.arange(len(estimates)),
+            estimates['survival'],
+            yerr=errors,
+            fmt='.',
+            c='green',
+            label='diversity',
+            ms=12)
+    
+    plt.ylabel('Estimated survival ratio')
+    ax.set_xticks(np.arange(len(estimates)))
+    ax.set_xticklabels(estimates['label'], fontsize=12)
 
 
 def species_accumulation_curve(x, max_steps=None, incl_minsample=False):
