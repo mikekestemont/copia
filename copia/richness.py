@@ -95,13 +95,20 @@ def iChao1(x):
     Returns
     -------
     richness : float
+        The "improved" estimate iChao1, that extends Chao1 to also
+        consider f3 ("tripletons") and f4 ("quadrupletons") in assemblages.
+
+    Note
+    ----
+        We follow the original paper's recommendation to add 1
+        to f4, if there are no quadrupletons in the assemblage,
+        so that iChao1 is always obtainable.
 
     References
     -------
-    - A. Chao, 'Non-parametric estimation of the classes in a population',
-    Scandinavian Journal of Statistics (1984), 265-270.
-    - A. Chao, et al., 'Quantifying sample completeness and comparing
-    diversities among assemblages', Ecological research (2020), 292-314.
+    - C.-H. Chiu et al., 'An Improved Nonparametric Lower Bound of
+    Species Richness via a Modified Good–Turing Frequency Formula',
+    Biometrics (2014), 671–682.
     """
 
     ch1 = chao1(x)
