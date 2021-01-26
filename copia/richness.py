@@ -82,6 +82,39 @@ def chao1(x):
         return f1 * (f1 - 1) / 2
 
 
+def iChao1(x):
+    """
+    "Improved" iChao1 estimate of bias-corrected species richness
+
+    Parameters
+    ----------
+    x : 1D numpy array with shape (number of species)
+        An array representing the abundances (observed
+        counts) for each individual species. 
+
+    Returns
+    -------
+    richness : float
+
+    References
+    -------
+    - A. Chao, 'Non-parametric estimation of the classes in a population',
+    Scandinavian Journal of Statistics (1984), 265-270.
+    - A. Chao, et al., 'Quantifying sample completeness and comparing
+    diversities among assemblages', Ecological research (2020), 292-314.
+    """
+
+    ch1 = chao1(x)
+    f1 = (x == 1).sum()
+    f2 = (x == 2).sum()
+    f3 = (x == 3).sum()
+    f4 = (x == 4).sum()
+    if f4 == 0:
+        f4 += 1
+    iCh1 = ch1 + (f3 / (4 * f4)) * np.max((f1 - ((f2 * f3) / (2 * f4)), 0))
+    return iCh1
+
+
 def egghe_proot(x, alpha=150):
     """
     Egghe & Proot estimate of bias-corrected species richness
@@ -134,6 +167,55 @@ def egghe_proot(x, alpha=150):
         return S_lost
     else:
         return np.nan
+
+def ace(x, k=10):
+    """
+    ACE estimate of bias-corrected species richness (Chao & Lee 1992)
+
+    Parameters
+    ----------
+    x : 1D numpy array with shape (number of species)
+        An array representing the abundances (observed
+        counts) for each individual species.
+    k : int (default = 10)
+        The abudance threshold for considering a species
+        "rare". Species with counts <= k will be considered
+        "rare".
+
+    Note
+    ----
+        - Regarding k, we follow the recommendation from the
+        "EstimateS" package and assume that the upper limit
+        for considering a species "rare" is 10 observations.
+        - Our implementation mirrors that in the "fossil" R
+        package (https://cran.r-project.org/web/packages/fossil).
+
+    Returns
+    -------
+    richness : float
+        Estimate $\hat{S}$ of the bias-corrected species richness.
+
+    References
+    ---------
+    - A. Chao & S.-M. Lee, 'Estimating the number of classes via
+    sample coverage'. Journal of the American Statistical Association
+    87 (1992), 210-217.
+    - R.K. Colwell & J.E. Elsensohn, 'EstimateS turns 20: statistical
+    estimation of species richness and shared species from samples,
+    with non-parametric extrapolation', Ecography 37 (2014), 609–613.
+    - M.J. Vavrek, 'fossil: palaeoecological and palaeogeographical
+    analysis tools', Palaeontologia Electronica 14 (2011), 1T.
+    """
+
+    nr = sum(x[x <= k])
+    sa = (x > k).sum()
+    sr = (x <= k).sum()
+    f1 = (x == 1).sum()
+    ca = 1 - (f1 / nr)
+    sumf = np.sum([i * (x == i).sum() for i in range(1, k+1)])
+    g2a = np.max( (sr/ca) * (sumf/(nr*(nr-1))) - np.array((1.,0.)) )
+    S = sa + sr/ca + (f1/ca)*g2a
+    return S
 
 
 def jackknife(x, k=5, return_order=False, return_ci=False,
@@ -325,9 +407,11 @@ def min_add_sample(x, solver='grid', search_space=(0, 100, 1e6),
 
 estimators = {'empirical': empirical_richness,
               'chao1': chao1,
+              'iChao1': iChao1,
               'egghe_proot': egghe_proot,
               'jackknife': jackknife,
-              'minsample': min_add_sample}
+              'minsample': min_add_sample,
+              'ACE': ace}
 
 
 def diversity(x, method=None, CI=False, conf=.95, **kwargs):
