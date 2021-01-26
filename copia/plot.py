@@ -90,18 +90,26 @@ def abundance_histogram(x):
     ax2.set_ylim((0, 1))
 
 
-def richness_density(d, empirical=None):
+def richness_density(d, empirical=None, normalize=False, title=None):
+    if normalize and not empirical:
+        msg = """If normalize is  set to True, `empirical`
+                 richness must be provided."""
+        raise ValueError(msg)
     plt.Figure(figsize=(15, 15))
+
+    if normalize:
+        d['bootstrap'] = empirical / d['bootstrap']
+
     sb.displot(d['bootstrap'], kde=True)
 
     q_11, q_50, q_89 = quantile(d['bootstrap'], [0.11, 0.5, 0.89], weights=None)
     q_m, q_p = q_50 - q_11, q_89 - q_50
-    plt.axvline(q_50, color='red')
 
+    plt.axvline(q_50, color='red')
     plt.axvline(q_11, ls='--', color='red')
     plt.axvline(q_89, ls='--', color='red')
 
-    if empirical:
+    if not normalize and empirical:
         plt.axvline(empirical, ls='--', color='green', linewidth=2)
 
     # Format the quantile display.
@@ -114,9 +122,18 @@ def richness_density(d, empirical=None):
                  va='center_baseline', backgroundcolor='white', 
                  fontsize=12)
     
-    plt.xlabel(r"Richness")
+    if normalize:
+        plt.xlim([0, 1])
+    
+    if not survival:
+        plt.xlabel(r"Richness")
+    else:
+        plt.xlabel(r"Survival ratio")
     plt.ylabel(r"Kernel density")
-    plt.title(r"Estimate: bootstrap values (KDE and CI)")
+    if not title:
+        plt.title(r"Estimate: bootstrap values (KDE and CI)")
+    else:
+        plt.title(title)
 
 
 def survival(assemblages, method='chao1'):
