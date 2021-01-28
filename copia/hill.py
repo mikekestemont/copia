@@ -79,7 +79,7 @@ def estimated_hill(x, q_values):
         else:
             return _chao_7d(x, n, f1, p1, q)
 
-    return [sub(q) for q in q_values]
+    return np.array([sub(q) for q in q_values])
 
 
 def empirical_hill(x, q_values):
@@ -92,19 +92,20 @@ def empirical_hill(x, q_values):
         return ((x > 0).sum() if q == 0 else np.exp(-np.sum(p * np.log(p)))
                 if q == 1 else np.exp(1 / (1 - q) * np.log(np.sum(p**q))))
 
-    return [sub(q) for q in q_values]
+    return np.array([sub(q) for q in q_values])
 
 
-def hill_numbers(x, q_min=0, q_max=3, step=0.1, n_iter=1000, conf=0.95, n_jobs=1):
+def hill_numbers(x, q_min=0, q_max=3, step=0.1,
+                 n_iter=1000, conf=0.95, n_jobs=1):
     x = np.array(x, dtype=np.int64)
     q = np.arange(q_min, q_max + step, step)
 
-    emp = bootstrap(x, fn=partial(empirical_hill, q),
+    emp = bootstrap(x, fn=partial(empirical_hill, q_values=q),
                        n_iter=n_iter,
                        conf=conf,
                        n_jobs=n_jobs)
 
-    est = bootstrap(x, fn=partial(estimated_hill, q),
+    est = bootstrap(x, fn=partial(estimated_hill, q_values=q),
                        n_iter=n_iter,
                        conf=conf,
                        n_jobs=n_jobs)
