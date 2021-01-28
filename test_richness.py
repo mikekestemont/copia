@@ -1,3 +1,5 @@
+import pytest
+
 import numpy as np
 import copia.richness as diversity
 
@@ -26,3 +28,9 @@ def test_egghe_proot():
     x = np.array([1, 1, 1, 2, 3, 5, 10, 25, 0, -1])
     assert np.isclose(diversity.egghe_proot(x, alpha=150), 16.38, rtol=0.001)        
     
+
+
+def test_egghe_proot_missing_p2():
+    x = np.array([1, 1, 1, 1, 3, 5, 10, 25])
+    with pytest.raises(ValueError):
+        diversity.egghe_proot(x)
