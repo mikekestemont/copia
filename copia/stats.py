@@ -1,3 +1,8 @@
+# -*- coding: utf-8 -*-
+"""
+Miscellaneous statistical subroutines, in particular for
+bootstrapping and rarefaction/extrapolition.
+"""
 import numpy as np
 import scipy.stats
 from scipy.special import gammaln

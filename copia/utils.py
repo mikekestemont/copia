@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+"""
+Various utility functions.
+"""
 from collections import Counter
 import multiprocessing as mp
 
@@ -41,6 +45,3 @@ def dbinom(x, size, prob):
 
 def lchoose(n, k):
     return gammaln(n + 1) - gammaln(k + 1) - gammaln(n - k + 1)
-
-
-

@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+"""
+Hill number calculations (including evenness)
+"""
 from functools import partial
 
 import numpy as np

@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+"""
+Miscellaneous visualization routines
+"""
 from functools import partial
 from collections import Counter
 
