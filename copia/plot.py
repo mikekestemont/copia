@@ -334,3 +334,27 @@ def hill_plot(emp, est, q_min=0, q_max=3, step=0.1,
         ax2.set_xlabel('Hill numbers')
         ax2.set_ylabel('Density')
 
+
+def evenness_plot(assemblages, incl_CI=False, q_min=0, q_max=3, step=0.1):
+    q = np.arange(q_min, q_max + step, step)
+    fig, ax = plt.subplots(figsize=(14, 14))
+
+    for label, d in assemblages.items():
+        lci, uci, richness = d['lci'], d['uci'], d['richness']
+        
+        c = next(ax._get_lines.prop_cycler)['color']
+        richness = (richness - 1) / (richness[0] - 1)
+        plt.plot(q, richness, label=label, c=c, linewidth=2)
+
+        if incl_CI:
+            lci = (lci - 1) / (lci[0] - 1)
+            uci = (uci - 1) / (uci[0] - 1)
+            
+            plt.plot(q, lci, c=c, linewidth=.8)
+            plt.plot(q, uci, c=c, linewidth=.8)
+            plt.fill_between(q, lci, uci, color=c, alpha=0.3)
+    
+    plt.xlabel('Diversity order ($q$)', fontsize=16)
+    plt.ylabel('Evenness: $({}^qD - 1) / (\hat{S} - 1)$', fontsize=16)
+    plt.title('Evenness profile', fontsize=20)
+    plt.legend(fontsize=14)
