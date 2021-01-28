@@ -99,3 +99,6 @@ def rarefaction_extrapolation(x, max_steps):
             A = n * f0 / (n * f0 + f1)
             return S if f1 == 0 else (S + f0 * (1 - A**(m - n)))
     return np.array([_sub(mi) for mi in range(1, max_steps)])
+
+
+__all__ = ['rarefaction_extrapolation', 'quantile', 'bootstrap']
