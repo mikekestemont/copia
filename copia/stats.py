@@ -3,6 +3,8 @@ import scipy.stats
 from scipy.special import gammaln
 from tqdm import tqdm
 
+from .utils import Parallel
+
 
 def dbinom(x, size, prob):
     d = scipy.stats.binom(size, prob).pmf(x)
@@ -24,13 +26,20 @@ def bt_prob(x):
     return p
 
 
-def bootstrap(x, fn, n_iter=1000, conf=.95):
+def bootstrap(x, fn,
+              n_iter: int = 1000,
+              conf: float = 0.95,
+              n_jobs: int = 1):
     pro = fn(x)
-    
     p, n = bt_prob(x), x.sum()
     data_bt = np.random.multinomial(n, p, n_iter)
     
-    bt_pro = np.array([fn(row) for row in tqdm(tuple(data_bt))])
+    pool = Parallel(n_jobs, n_iter)
+    for row in data_bt:
+        pool.apply_async(fn, args=(row,))
+    pool.join()
+    bt_pro = np.array(pool.result())
+
     pro_mean = bt_pro.mean(0)
     
     lci_pro = -np.quantile(bt_pro, (1 - conf) / 2, axis=0) + pro_mean
