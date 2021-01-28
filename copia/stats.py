@@ -38,8 +38,8 @@ def bootstrap(x, fn,
     for row in data_bt:
         pool.apply_async(fn, args=(row,))
     pool.join()
-    bt_pro = np.array(pool.result())
 
+    bt_pro = np.array(pool.result())
     pro_mean = bt_pro.mean(0)
     
     lci_pro = -np.quantile(bt_pro, (1 - conf) / 2, axis=0) + pro_mean
