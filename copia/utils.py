@@ -10,10 +10,10 @@ import scipy.stats as stats
 from scipy.special import gammaln
 import tqdm
 
+
 def to_abundance(species):
     return np.array(tuple(Counter(species).values()),
            dtype=np.int)
-
 
 class Parallel:
     def __init__(self, n_workers, n_tasks):
