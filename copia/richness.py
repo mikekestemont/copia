@@ -357,7 +357,7 @@ def min_add_sample(x, solver='grid', search_space=(0, 100, 1e6),
             - 'fsolve': numpy optimization (more precise, less stable in practice)
     search_space : 3-way tuple (default = (0, 100, 1e5))
         Search space to be used in the grid search:
-            (start, end, stepsize)
+            (start, end, number of samples)
     tolerance : float (default = 1e-2)
         Allowed divergence (from zero) in finding the intersection
         between h() and v().
