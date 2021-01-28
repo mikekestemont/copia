@@ -47,13 +47,6 @@ def _chao_7d(x, n, f1, p1, q):
     return (A + B)**(1 / (1 - q))
 
 
-def chao_richness(x):
-    x, n = x[x > 0], x.sum()
-    t = x.shape[0]
-    f1, f2 = (x == 1).sum(), (x == 2).sum()
-    return _chao_7a(t, n, f1, f2)
-
-
 def estimated_hill(x, q_values):
     """
     Estimated Hill numbers
