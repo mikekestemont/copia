@@ -28,7 +28,7 @@ def empirical_richness(x, species=True):
     """
 
     if species:
-        return x[x > 0].shape[0]
+        return np.count_nonzero(x > 0)
     else:
         return x.sum()
 
@@ -74,8 +74,8 @@ def chao1(x):
     x = x[x > 0]
     n = x.sum()
     t = x.shape[0]
-    f1 = (x == 1).sum()
-    f2 = (x == 2).sum()
+    f1 = np.count_nonzero(x == 1)
+    f2 = np.count_nonzero(x == 2)
 
     if f2 > 0:
         return t + (n - 1) / n * (f1 ** 2 / 2 / f2) 
@@ -113,12 +113,14 @@ def iChao1(x):
     """
 
     ch1 = chao1(x)
-    f1 = (x == 1).sum()
-    f2 = (x == 2).sum()
-    f3 = (x == 3).sum()
-    f4 = (x == 4).sum()
+    f1 = np.count_nonzero(x == 1)
+    f2 = np.count_nonzero(x == 2)
+    f3 = np.count_nonzero(x == 3)
+    f4 = np.count_nonzero(x == 4)
+
     if f4 == 0:
         f4 += 1
+    
     iCh1 = ch1 + (f3 / (4 * f4)) * np.max((f1 - ((f2 * f3) / (2 * f4)), 0))
     return iCh1
 
@@ -164,8 +166,8 @@ def egghe_proot(x, alpha=150):
     ft = np.bincount(x)[1:]
     S = ft.sum()
 
-    P1 = (x == 1).sum()
-    P2 = (x == 2).sum()
+    P1 = np.count_nonzero(x == 1)
+    P2 = np.count_nonzero(x == 2)
     P0 = (1 / (1 + (2 / (alpha - 1)) * (P2 / P1))) ** alpha
 
     S_lost = S * (P0 / (1 - P0))
@@ -216,9 +218,9 @@ def ace(x, k=10):
     """
 
     nr = sum(x[x <= k])
-    sa = (x > k).sum()
-    sr = (x <= k).sum()
-    f1 = (x == 1).sum()
+    sa = np.count_nonzero(x > k)
+    sr = np.count_nonzero(x <= k)
+    f1 = np.count_nonzero(x == 1)
     ca = 1 - (f1 / nr)
     sumf = np.sum([i * (x == i).sum() for i in range(1, k+1)])
     g2a = np.max( (sr/ca) * (sumf/(nr*(nr-1))) - np.array((1.,0.)) )
@@ -384,7 +386,8 @@ def min_add_sample(x, solver='grid', search_space=(0, 100, 1e6),
     n = x.sum()
     x = x[x > 0]
     t = x.shape[0]
-    f1, f2 = (x == 1).sum(), (x == 2).sum()
+    f1 = np.count_nonzero(x == 1)
+    f2 = np.count_nonzero(x == 2)
     
     h = lambda x: 2 * f1 * (1 + x)
     v = lambda x: np.exp(x * (2 * f2 / f1))

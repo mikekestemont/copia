@@ -53,7 +53,9 @@ def estimated_hill(x, q_values):
     """
     x, n = x[x > 0], x.sum()
     t = x.shape[0]  # number of nonzero traits
-    f1, f2 = (x == 1).sum(), (x == 2).sum()
+    f1 = np.count_nonzero(x == 1)
+    f2 = np.count_nonzero(x == 2)
+
     p1 = 1  # cf equation 6b
     if f2 > 0:
         p1 = 2 * f2 / ((n - 1) * f1 + 2 * f2)

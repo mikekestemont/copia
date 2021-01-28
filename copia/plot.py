@@ -28,10 +28,10 @@ def abundance_counts(x):
     plt.title('Distribution of sightings over species')
     
     textstr = '\n'.join((
-        f'Species: {len(x[x > 0])}',
+        f'Species: {np.count_nonzero(x)}',
         f'Observations: {x.sum()}',
-        f'$f_1$: {(x == 1).sum()}',
-        f'$f_2$: {(x == 2).sum()}',
+        f'$f_1$: {np.count_nonzero(x == 1)}',
+        f'$f_2$: {np.count_nonzero(x == 2)}',
         ))
     plt.annotate(textstr, xy=(0.75, 0.75), xycoords='axes fraction',
                  va='center', backgroundcolor='white')
@@ -56,10 +56,10 @@ def abundance_histogram(x):
     ax = plt.gca()
 
     textstr = '\n'.join((
-        f'Species: {len(x[x > 0])}',
+        f'Species: {np.count_nonzero(x)}',
         f'Observations: {x.sum()}',
-        f'$f_1$: {(x == 1).sum()}',
-        f'$f_2$: {(x == 2).sum()}',
+        f'$f_1$: {np.count_nonzero(x == 1)}',
+        f'$f_2$: {np.count_nonzero(x == 2)}',
         ))
     
     counter = Counter(x)
@@ -139,6 +139,8 @@ def richness_density(d, empirical=None, normalize=False, title=None):
 def survival(assemblages, method='chao1'):
     survival_estimates = []
     plt.Figure(figsize=(16, 8))
+
+    method = method.lower()
 
     for label, assemblage in assemblages.items():
         d = bootstrap(assemblage, fn=estimators[method])
