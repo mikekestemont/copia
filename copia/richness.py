@@ -8,7 +8,7 @@ import numpy as np
 import scipy.stats
 from scipy.optimize import fsolve
 
-from .stats import *
+from .stats import bootstrap, dbinom
 
 
 def empirical_richness(x, species=True):
@@ -19,7 +19,7 @@ def empirical_richness(x, species=True):
     ----------
     x : 1D numpy array with shape (number of species)
         An array representing the abundances (observed
-        counts) for each individual species. 
+        counts) for each individual species.
 
     Returns
     -------
@@ -41,7 +41,7 @@ def chao1(x):
     ----------
     x : 1D numpy array with shape (number of species)
         An array representing the abundances (observed
-        counts) for each individual species. 
+        counts) for each individual species.
 
     Returns
     -------
@@ -78,7 +78,7 @@ def chao1(x):
     f2 = np.count_nonzero(x == 2)
 
     if f2 > 0:
-        return t + (n - 1) / n * (f1 ** 2 / 2 / f2) 
+        return t + (n - 1) / n * (f1 ** 2 / 2 / f2)
     else:
         return f1 * (f1 - 1) / 2
 
@@ -91,7 +91,7 @@ def iChao1(x):
     ----------
     x : 1D numpy array with shape (number of species)
         An array representing the abundances (observed
-        counts) for each individual species. 
+        counts) for each individual species.
 
     Returns
     -------
@@ -120,7 +120,7 @@ def iChao1(x):
 
     if f4 == 0:
         f4 += 1
-    
+
     iCh1 = ch1 + (f3 / (4 * f4)) * np.max((f1 - ((f2 * f3) / (2 * f4)), 0))
     return iCh1
 
@@ -149,8 +149,8 @@ def egghe_proot(x, alpha=150):
             the sample (singletons),
             - $f_2$ = the number of species that were sighted twice
             (doubletons)
-            - $\hat{f_0}$ = the estimated number of species that once 
-            existed in the assemblage, but which were sighted zero times, 
+            - $\hat{f_0}$ = the estimated number of species that once
+            existed in the assemblage, but which were sighted zero times,
             i.e. the number of undetected species.
 
     References
@@ -177,6 +177,7 @@ def egghe_proot(x, alpha=150):
         return S_lost
     else:
         return np.nan
+
 
 def ace(x, k=10):
     """
@@ -222,14 +223,13 @@ def ace(x, k=10):
     sr = np.count_nonzero(x <= k)
     f1 = np.count_nonzero(x == 1)
     ca = 1 - (f1 / nr)
-    sumf = np.sum([i * (x == i).sum() for i in range(1, k+1)])
-    g2a = np.max( (sr/ca) * (sumf/(nr*(nr-1))) - np.array((1.,0.)) )
-    S = sa + sr/ca + (f1/ca)*g2a
+    sumf = np.sum([i * (x == i).sum() for i in range(1, k + 1)])
+    g2a = np.max((sr / ca) * (sumf / (nr * (nr - 1))) - np.array((1.0, 0.0)))
+    S = sa + sr / ca + (f1 / ca) * g2a
     return S
 
 
-def jackknife(x, k=5, return_order=False, return_ci=False,
-              conf=0.95):
+def jackknife(x, k=5, return_order=False, return_ci=False, conf=0.95):
     """
     Jackknife estimate of bias-corrected species richness
 
@@ -268,7 +268,7 @@ def jackknife(x, k=5, return_order=False, return_ci=False,
 
     Notes
     -------
-    This is a literal translation of the reference implementation in the 
+    This is a literal translation of the reference implementation in the
     [SPECIES package](https://github.com/jipingw/SPECIES/blob/master/R/jackknife.R).
 
     References
@@ -291,30 +291,32 @@ def jackknife(x, k=5, return_order=False, return_ci=False,
         gene[i, 3] = total
         for j in range(1, i + 1):
             gene[i, 0] = (
-                gene[i, 0] +
-                (-1)**(j + 1) * 2**i * dbinom(j, i, 0.5) * n[j - 1, 1])
-            gene[i, 3] = gene[i, 3] + (-1)**(j + 1) * 2**i * dbinom(
-                j, i, 0.5) * n[j - 1, 1] * np.prod(np.arange(1, j + 1))
+                gene[i, 0] + (-1) ** (j + 1) * 2 ** i * dbinom(j, i, 0.5) * n[j - 1, 1]
+            )
+            gene[i, 3] = gene[i, 3] + (-1) ** (j + 1) * 2 ** i * dbinom(j, i, 0.5) * n[
+                j - 1, 1
+            ] * np.prod(np.arange(1, j + 1))
         gene[i, 1] = -gene[i, 0]
         for j in range(1, i + 1):
-            gene[i, 1] = (gene[i, 1] + (
-                (-1)**(j + 1) * 2**i * dbinom(j, i, 0.5) + 1)**2 * n[j - 1, 1])
+            gene[i, 1] = (
+                gene[i, 1]
+                + ((-1) ** (j + 1) * 2 ** i * dbinom(j, i, 0.5) + 1) ** 2 * n[j - 1, 1]
+            )
         gene[i, 1] = np.sqrt(gene[i, 1] + n[i:, 1].sum())
-    
+
     if k > 1:
         for i in range(2, k + 1):
-            gene[i - 1, 2] = -(gene[i, 0] - gene[i - 1, 0])**2 / (total - 1)
+            gene[i - 1, 2] = -((gene[i, 0] - gene[i - 1, 0]) ** 2) / (total - 1)
             for j in range(1, i):
                 gene[i - 1, 2] = gene[i - 1, 2] + (
-                    (-1)**(j + 1) * 2**(i) * dbinom(j, i, 0.5) -
-                    (-1)**(j + 1) * 2**(i - 1) * dbinom(j, i - 1, 0.5)
-                )**2 * n[j - 1, 1] * total / (total - 1)
-            gene[i - 1, 2] = np.sqrt(gene[i - 1, 2] + n[i - 1, 1] * total /
-                                     (total - 1))
+                    (-1) ** (j + 1) * 2 ** (i) * dbinom(j, i, 0.5)
+                    - (-1) ** (j + 1) * 2 ** (i - 1) * dbinom(j, i - 1, 0.5)
+                ) ** 2 * n[j - 1, 1] * total / (total - 1)
+            gene[i - 1, 2] = np.sqrt(gene[i - 1, 2] + n[i - 1, 1] * total / (total - 1))
             gene[i - 1, 4] = (gene[i, 0] - gene[i - 1, 0]) / gene[i - 1, 2]
-    
+
     coe = scipy.stats.norm().ppf(1 - (1 - conf) / 2)
-    x = gene[1:k + 1, 4] < coe
+    x = gene[1 : k + 1, 4] < coe
 
     if x.sum() == 0:
         jackest = gene[k, 0]
@@ -330,21 +332,20 @@ def jackknife(x, k=5, return_order=False, return_ci=False,
         jackest = gene[k0, 0]
         sej = gene[k0, 1]
         order = k0
-    
-    if (return_order or return_ci):
-        d = {'richness': jackest}
+
+    if return_order or return_ci:
+        d = {"richness": jackest}
         if return_order:
-            d['order']  = order
+            d["order"] = order
         if return_ci:
-            d['lci'] = jackest - coe * sej
-            d['uci'] = jackest + coe * sej
+            d["lci"] = jackest - coe * sej
+            d["uci"] = jackest + coe * sej
         return d
     else:
         return jackest
 
 
-def min_add_sample(x, solver='grid', search_space=(0, 100, 1e6),
-                  tolerance=1e-1):
+def min_add_sample(x, solver="grid", search_space=(0, 100, 1e6), tolerance=1e-1):
     """
     Minimum additional sampling estimate (of population size)
 
@@ -378,8 +379,8 @@ def min_add_sample(x, solver='grid', search_space=(0, 100, 1e6),
     -------
     - A. Chao et al., 'Sufficient sampling for asymptotic minimum
     species richness estimators', Ecology (2009), 1125-1133.
-    - M. Kestemont & F. Karsdorp, 'Estimating the Loss of Medieval 
-    Literature with an Unseen Species Model from Ecodiversity', 
+    - M. Kestemont & F. Karsdorp, 'Estimating the Loss of Medieval
+    Literature with an Unseen Species Model from Ecodiversity',
     Computational Humanities Research (2020), 44-55.
     """
 
@@ -387,42 +388,46 @@ def min_add_sample(x, solver='grid', search_space=(0, 100, 1e6),
     x = x[x > 0]
     f1 = np.count_nonzero(x == 1)
     f2 = np.count_nonzero(x == 2)
-    
+
     h = lambda x: 2 * f1 * (1 + x)
     v = lambda x: np.exp(x * (2 * f2 / f1))
-    
-    if solver == 'grid':
+
+    if solver == "grid":
         search_space = np.linspace(*[int(i) for i in search_space])
         hs = np.array(h(search_space))
         vs = np.array(v(search_space))
         diffs = np.abs(hs - vs)
         x_ast = search_space[diffs.argmin()]
 
-    elif solver == 'fsolve':
+    elif solver == "fsolve":
+
         def intersection(func1, func2, x0):
             return fsolve(lambda x: func1(x) - func2(x), x0)[0]
+
         x_ast = intersection(h, v, n)
-    
+
     else:
         raise ValueError(f'Unsupported "solver" argument: {solver}')
-    
+
     diff_intersect = abs(h(x_ast) - v(x_ast))
     if not diff_intersect < tolerance:
-        warnings.warn(f'Tolerance criterion not met: {diff_intersect} > {tolerance}')
+        warnings.warn(f"Tolerance criterion not met: {diff_intersect} > {tolerance}")
 
     return n * x_ast
 
 
-estimators = {'empirical': empirical_richness,
-              'chao1': chao1,
-              'ichao1': iChao1,
-              'egghe_proot': egghe_proot,
-              'jackknife': jackknife,
-              'minsample': min_add_sample,
-              'ace': ace}
+estimators = {
+    "empirical": empirical_richness,
+    "chao1": chao1,
+    "ichao1": iChao1,
+    "egghe_proot": egghe_proot,
+    "jackknife": jackknife,
+    "minsample": min_add_sample,
+    "ace": ace,
+}
 
 
-def diversity(x, method=None, CI=False, conf=.95, **kwargs):
+def diversity(x, method=None, CI=False, conf=0.95, **kwargs):
     """
     Wrapper for various bias-corrected richness functions
 
@@ -449,13 +454,13 @@ def diversity(x, method=None, CI=False, conf=.95, **kwargs):
 
     if method is not None and method.lower() not in estimators:
         raise ValueError(f"Unknown estimation method `{method}`.")
-    
+
     if method is None:
-        method = 'empirical'
+        method = "empirical"
 
     if CI:
         estimate = bootstrap(x, fn=estimators[method.lower()])
     else:
         estimate = estimators[method.lower()](x, **kwargs)
-    
+
     return estimate
