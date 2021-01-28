@@ -347,8 +347,12 @@ def evenness_plot(assemblages, incl_CI=False, q_min=0, q_max=3, step=0.1):
         plt.plot(q, richness, label=label, c=c, linewidth=2)
 
         if incl_CI:
+            # experimental...
             lci = (lci - 1) / (max(max(lci), lci[0]) - 1)
             uci = (uci - 1) / (max(max(uci), uci[0]) - 1)
+
+            lci = np.maximum(richness, lci)
+            uci = np.minimum(richness, uci)
             
             plt.plot(q, lci, c=c, linewidth=.8)
             plt.plot(q, uci, c=c, linewidth=.8)
