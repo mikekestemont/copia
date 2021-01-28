@@ -64,7 +64,7 @@ def chao1(x):
             sighted zero times, i.e. the number of undetected species.       
 
     References
-    -------
+    ----------
     - A. Chao, 'Non-parametric estimation of the classes in a population',
     Scandinavian Journal of Statistics (1984), 265-270.
     - A. Chao, et al., 'Quantifying sample completeness and comparing
@@ -103,7 +103,8 @@ def iChao1(x):
     ----
         We follow the original paper's recommendation to add 1
         to f4, if there are no quadrupletons in the assemblage,
-        so that iChao1 is always obtainable.
+        so that iChao1 is always obtainable.  A user warning will b
+        raised in this case.
 
     References
     -------
@@ -119,6 +120,7 @@ def iChao1(x):
     f4 = np.count_nonzero(x == 4)
 
     if f4 == 0:
+        warnings.warn('Add-one smoothing for f4 = 0', UserWarning)
         f4 += 1
     
     iCh1 = ch1 + (f3 / (4 * f4)) * np.max((f1 - ((f2 * f3) / (2 * f4)), 0))
@@ -153,8 +155,13 @@ def egghe_proot(x, alpha=150):
             existed in the assemblage, but which were sighted zero times, 
             i.e. the number of undetected species.
 
+    Note
+    ----
+        If no doubletons are available in the samples, we apply add-one-
+        smoothing to P2. A user warning will be raised in this case.
+
     References
-    -------
+    ----------
     - L. Egghe and G. Proot, 'The estimation of the number of lost
     multi-copy documents: A new type of informetrics theory', Journal
     of Informetrics (2007), 257-268.
@@ -168,6 +175,11 @@ def egghe_proot(x, alpha=150):
 
     P1 = np.count_nonzero(x == 1)
     P2 = np.count_nonzero(x == 2)
+
+    if P2 == 0:
+        warnings.warn('Add-one smoothing for P2 = 0', UserWarning)
+        P2 += 1
+
     P0 = (1 / (1 + (2 / (alpha - 1)) * (P2 / P1))) ** alpha
 
     S_lost = S * (P0 / (1 - P0))
@@ -206,7 +218,7 @@ def ace(x, k=10):
         Estimate $\hat{S}$ of the bias-corrected species richness.
 
     References
-    ---------
+    ----------
     - A. Chao & S.-M. Lee, 'Estimating the number of classes via
     sample coverage'. Journal of the American Statistical Association
     87 (1992), 210-217.
@@ -447,6 +459,14 @@ def diversity(x, method=None, CI=False, conf=.95, **kwargs):
     """
 
     x = np.array(x, dtype=np.int64)
+
+    if (x < 0).any():
+        msg = 'Elements of `x` should be strictly non-negative'
+        raise ValueError(msg)
+
+    if x.sum() <= 0:
+        msg = '`x` appears to be empty'
+        raise ValueError(msg)
 
     if method is not None and method.lower() not in estimators:
         raise ValueError(f"Unknown estimation method `{method}`.")
