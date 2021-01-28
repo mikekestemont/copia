@@ -459,8 +459,8 @@ def diversity(x, method=None, CI=False, conf=.95, **kwargs):
         method = 'empirical'
 
     if CI:
-        estimate = bootstrap(x, fn=estimators[method])
+        estimate = bootstrap(x, fn=estimators[method.lower()])
     else:
-        estimate = estimators[method](x, **kwargs)
+        estimate = estimators[method.lower()](x, **kwargs)
     
     return estimate
