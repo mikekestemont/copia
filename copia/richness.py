@@ -385,7 +385,6 @@ def min_add_sample(x, solver='grid', search_space=(0, 100, 1e6),
 
     n = x.sum()
     x = x[x > 0]
-    t = x.shape[0]
     f1 = np.count_nonzero(x == 1)
     f2 = np.count_nonzero(x == 2)
     
