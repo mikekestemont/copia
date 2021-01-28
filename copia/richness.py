@@ -420,11 +420,11 @@ def min_add_sample(x, solver='grid', search_space=(0, 100, 1e6),
 
 estimators = {'empirical': empirical_richness,
               'chao1': chao1,
-              'iChao1': iChao1,
+              'ichao1': iChao1,
               'egghe_proot': egghe_proot,
               'jackknife': jackknife,
               'minsample': min_add_sample,
-              'ACE': ace}
+              'ace': ace}
 
 
 def diversity(x, method=None, CI=False, conf=.95, **kwargs):
@@ -451,6 +451,9 @@ def diversity(x, method=None, CI=False, conf=.95, **kwargs):
     """
 
     x = np.array(x, dtype=np.int64)
+
+    if method is not None and method.lower() not in estimators:
+        raise ValueError(f"Unknown estimation method `{method}`.")
     
     if method is None:
         method = 'empirical'
