@@ -26,7 +26,6 @@ def empirical_richness(x, species=True):
     richness : float
         The empirically observed number of distinct species
     """
-    assert isinstance(x, np.ndarray) and x.ndim == 1
 
     if species:
         return x[x > 0].shape[0]
@@ -71,7 +70,6 @@ def chao1(x):
     - A. Chao, et al., 'Quantifying sample completeness and comparing
     diversities among assemblages', Ecological research (2020), 292-314.
     """
-    assert isinstance(x, np.ndarray) and x.ndim == 1
 
     x = x[x > 0]
     n = x.sum()
@@ -113,7 +111,6 @@ def iChao1(x):
     Species Richness via a Modified Good–Turing Frequency Formula',
     Biometrics (2014), 671–682.
     """
-    assert isinstance(x, np.ndarray) and x.ndim == 1
 
     ch1 = chao1(x)
     f1 = (x == 1).sum()
@@ -163,7 +160,6 @@ def egghe_proot(x, alpha=150):
     documents: A new type of informetrics theory" by Egghe and Proot',
     Journal of Informetrics (2008), 101–105.
     """
-    assert isinstance(x, np.ndarray) and x.ndim == 1
 
     ft = np.bincount(x)[1:]
     S = ft.sum()
@@ -218,7 +214,6 @@ def ace(x, k=10):
     - M.J. Vavrek, 'fossil: palaeoecological and palaeogeographical
     analysis tools', Palaeontologia Electronica 14 (2011), 1T.
     """
-    assert isinstance(x, np.ndarray) and x.ndim == 1
 
     nr = sum(x[x <= k])
     sa = (x > k).sum()
@@ -281,7 +276,6 @@ def jackknife(x, k=5, return_order=False, return_ci=False,
     - J.-P. Wang, 'SPECIES: An R Package for Species Richness Estimation',
     Journal of Statistical Software (2011), 1-15.
     """
-    assert isinstance(x, np.ndarray) and x.ndim == 1
 
     k0, k = k, min(len(np.unique(x)) - 1, 10)
     n = np.bincount(x)[1:]
@@ -386,7 +380,6 @@ def min_add_sample(x, solver='grid', search_space=(0, 100, 1e6),
     Literature with an Unseen Species Model from Ecodiversity', 
     Computational Humanities Research (2020), 44-55.
     """
-    assert isinstance(x, np.ndarray) and x.ndim == 1
 
     n = x.sum()
     x = x[x > 0]
