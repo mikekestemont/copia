@@ -144,7 +144,7 @@ def survival(assemblages, method='chao1'):
     method = method.lower()
 
     for label, assemblage in assemblages.items():
-        d = bootstrap(assemblage, fn=estimators[method])
+        d = bootstrap(assemblage, fn=ESTIMATORS[method])
         
         if method == 'minsample':
             # normalize to proportions:

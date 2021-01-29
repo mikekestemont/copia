@@ -428,7 +428,7 @@ def min_add_sample(x, solver="grid", search_space=(0, 100, 1e6), tolerance=1e-1)
     return n * x_ast
 
 
-estimators = {
+ESTIMATORS = {
     "empirical": empirical_richness,
     "chao1": chao1,
     "ichao1": iChao1,
@@ -479,11 +479,13 @@ def diversity(
     if method is None:
         method = "empirical"
 
+    method = method.lower()
+
     if CI:
         estimate = bootstrap(
-            x, fn=estimators[method.lower()], n_iter=n_iter, n_jobs=n_jobs, seed=seed
+            x, fn=ESTIMATORS[method], n_iter=n_iter, n_jobs=n_jobs, seed=seed
         )
     else:
-        estimate = estimators[method.lower()](x, **kwargs)
+        estimate = ESTIMATORS[method](x, **kwargs)
 
     return estimate
