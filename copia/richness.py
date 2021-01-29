@@ -7,6 +7,7 @@ import warnings
 import numpy as np
 import scipy.stats
 from scipy.optimize import fsolve
+import matplotlib.pyplot as plt
 
 from .stats import bootstrap, dbinom
 
@@ -357,9 +358,11 @@ def jackknife(x, k=5, return_order=False, return_ci=False, conf=0.95):
         return jackest
 
 
-def min_add_sample(x, solver="grid", search_space=(0, 100, 1e6), tolerance=1e-1):
+def min_add_sample(x, solver="grid", search_space=(0, 100, 1e6),
+                   tolerance=1e-1, diagnostics=False):
     """
-    Minimum additional sampling estimate (of population size)
+    Observed population size added to the minimum additional sampling estimate
+    (~ original population size)
 
     Parameters
     ----------
@@ -375,7 +378,10 @@ def min_add_sample(x, solver="grid", search_space=(0, 100, 1e6), tolerance=1e-1)
             (start, end, number of samples)
     tolerance : float (default = 1e-2)
         Allowed divergence (from zero) in finding the intersection
-        between h() and v().
+        between h() and v()
+    diagnostics = bool (default = False)
+            If True, a diagnostic plot is produced for h() and v()and
+            a dict is returned with the keys "richness", "x*", "n"
 
     Returns
     -------
@@ -386,7 +392,7 @@ def min_add_sample(x, solver="grid", search_space=(0, 100, 1e6), tolerance=1e-1)
         to observe each of the hypothesized species (i.e. $\hat{f_0}$) at
         least once. (In some cases, this number can approximate
         the estimated number of individuals in the original
-        population.)
+        population.) We only implement the case g = 1.
 
     References
     -------
@@ -397,8 +403,8 @@ def min_add_sample(x, solver="grid", search_space=(0, 100, 1e6), tolerance=1e-1)
     Computational Humanities Research (2020), 44-55.
     """
 
-    n = x.sum()
     x = x[x > 0]
+    n = x.sum()
     f1 = np.count_nonzero(x == 1)
     f2 = np.count_nonzero(x == 2)
 
@@ -406,11 +412,11 @@ def min_add_sample(x, solver="grid", search_space=(0, 100, 1e6), tolerance=1e-1)
     v = lambda x: np.exp(x * (2 * f2 / f1))
 
     if solver == "grid":
-        search_space = np.linspace(*[int(i) for i in search_space])
-        hs = np.array(h(search_space))
-        vs = np.array(v(search_space))
+        search = np.linspace(*[int(i) for i in search_space])
+        hs = np.array(h(search))
+        vs = np.array(v(search))
         diffs = np.abs(hs - vs)
-        x_ast = search_space[diffs.argmin()]
+        x_ast = search[diffs.argmin()]
 
     elif solver == "fsolve":
 
@@ -422,13 +428,26 @@ def min_add_sample(x, solver="grid", search_space=(0, 100, 1e6), tolerance=1e-1)
     else:
         raise ValueError(f'Unsupported "solver" argument: {solver}')
 
+    # check result
     diff_intersect = abs(h(x_ast) - v(x_ast))
     if not diff_intersect < tolerance:
         warnings.warn(f"Tolerance criterion not met: {diff_intersect} > {tolerance}")
+    if x_ast <= 0:
+        warnings.warn(f"Optimization failure likely: {x_ast} <= 0")
     
     m = n * x_ast
 
-    return n + m
+    if diagnostics:
+        sp = np.linspace(x_ast - 1, x_ast + 1, 100)
+        plt.plot(sp, 2 * f1 * (1 + sp), label='$h(x)$')
+        plt.plot(sp, np.exp(sp * (2 * f2 / f1)), label='$v(x)$')
+        plt.axvline(x_ast, linestyle='--', c='grey')
+        plt.xlabel('$x$')
+        plt.ylabel('h(x) and v(x)')
+        plt.legend()
+        return {'richness': n + m, 'x*': x_ast, 'n': n}
+    else:
+        return n + m
 
 
 estimators = {
