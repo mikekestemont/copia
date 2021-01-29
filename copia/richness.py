@@ -380,9 +380,10 @@ def min_add_sample(x, solver="grid", search_space=(0, 100, 1e6), tolerance=1e-1)
     Returns
     -------
     estimate : float
-        Lower-bound estimate of the minimum additional samples
-        (observations) that would have to be taken to observe
-        each of the hypothesized species (i.e. $\hat{f_0}$) at
+        $n + m (= nx*)$
+        Observed $n$ + $m$, i.e. lower-bound estimate of the minimum
+        additional samples (observations) that would have to be taken
+        to observe each of the hypothesized species (i.e. $\hat{f_0}$) at
         least once. (In some cases, this number can approximate
         the estimated number of individuals in the original
         population.)
@@ -424,8 +425,10 @@ def min_add_sample(x, solver="grid", search_space=(0, 100, 1e6), tolerance=1e-1)
     diff_intersect = abs(h(x_ast) - v(x_ast))
     if not diff_intersect < tolerance:
         warnings.warn(f"Tolerance criterion not met: {diff_intersect} > {tolerance}")
+    
+    m = n * x_ast
 
-    return n * x_ast
+    return n + m
 
 
 estimators = {
