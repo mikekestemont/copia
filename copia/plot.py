@@ -187,7 +187,7 @@ def survival_error(df, ax=None, figsize=(12, 4)):
     estimates = df.sort_values('survival')
     errors = np.array(list(zip(estimates['lCI'], estimates['uCI']))).T
     errors[0] = estimates['survival'] - errors[0]
-    errors[1] -=  estimates['survival']
+    errors[1] -= estimates['survival']
 
     if ax is None:
         fig, ax = plt.subplots(figsize=figsize)
@@ -206,9 +206,8 @@ def survival_error(df, ax=None, figsize=(12, 4)):
     return ax
 
 
-def species_accumulation_curve(x, max_steps=None, incl_minsample=False):
+def species_accumulation_curve(x, max_steps=None, incl_minsample=False, ax=None, figsize=(16, 12), n_iter=100):
     x = np.array(x, dtype=np.int)
-    plt.Figure(figsize=(16, 12))
 
     # min sample estimate to estimate max steps:
     minsample_est = diversity(x, method='minsample', 
@@ -216,7 +215,7 @@ def species_accumulation_curve(x, max_steps=None, incl_minsample=False):
     q_11, q_50, q_89 = quantile(minsample_est['bootstrap'],
                                [0.11, 0.5, 0.89], weights=None)
     
-    if not max_steps:
+    if max_steps is None:
         if incl_minsample:
             max_steps = int(max(minsample_est['bootstrap']))
         else:
@@ -227,36 +226,36 @@ def species_accumulation_curve(x, max_steps=None, incl_minsample=False):
 
     estim = bootstrap(x, fn=partial(rarefaction_extrapolation,
                                     max_steps=max_steps),
-                      n_iter=100)
+                      n_iter=n_iter)
     
     lci_pro = estim['lci']
     uci_pro = estim['uci']
     Dq = estim['richness']
 
+    if ax is None:
+        fig, ax = plt.subplots(figsize=figsize)
+
     # species accumulation
-    plt.plot(x.sum(), Dq[x.sum() - 1], 'o', markersize=8)
-    plt.plot(steps[interpolated], Dq[interpolated], color='C0')
-    plt.plot(steps[~interpolated], Dq[~interpolated], '--', color='C0')
-    plt.fill_between(steps, lci_pro, uci_pro, alpha=0.3)
-    plt.gca().set_ylim((0, plt.gca().get_ylim()[1]))
+    ax.plot(x.sum(), Dq[x.sum() - 1], 'o', markersize=8)
+    ax.plot(steps[interpolated], Dq[interpolated], color='C0')
+    ax.plot(steps[~interpolated], Dq[~interpolated], '--', color='C0')
+    ax.fill_between(steps, lci_pro, uci_pro, alpha=0.3)
 
     # min sample:
     if incl_minsample:
-        ax2 = plt.gca().twinx()
+        ax2 = ax.twinx()
         sb.kdeplot(minsample_est['bootstrap'], ax=ax2,
                 color='green', fill=True)
 
-        plt.axvline(q_50, color='green')
-        plt.axvline(q_11, ls='--', color='green')
-        plt.axvline(q_89, ls='--', color='green')
+        ax.axvline(q_50, color='green')
+        ax.axvline(q_11, ls='--', color='green')
+        ax.axvline(q_89, ls='--', color='green')
 
-        plt.gca().set_ylim((0, plt.gca().get_ylim()[1]))
         ax2.grid(None)
 
     # cosmetics etc.
-    plt.xlabel('sightings')
-    plt.ylabel('species')
-    plt.title('Species Accumulation Curve')    
+    ax.set(xlabel='sightings', ylabel='species', title='Species Accumulation Curve')
+    return ax
 
 
 def hill_plot(emp, est, q_min=0, q_max=3, step=0.1,
