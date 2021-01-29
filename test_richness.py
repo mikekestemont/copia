@@ -97,6 +97,39 @@ def test_spider():
     assert np.isclose(diversity.chao1(x), 61.403, rtol=0.001)
 
 
+def test_moths():
+    # Moth data derived from Table 3 in Fisher et al. (1943); source:
+    # https://github.com/piLaboratory/sads/blob/master/data/moths.rda
+    # minsample estimate (`nx*`): first line in Table 1 in Chao et al. (2009)
+    # for g = 1: nx* = 166509
+    moths = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2,
+    2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4,
+    4, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6,
+    6, 6, 6, 6, 6, 6, 6, 7, 7, 7, 7, 7, 8, 8, 8, 8, 8, 8, 9, 9, 9, 9, 10,
+    10, 10, 10, 11, 11, 12, 12, 13, 13, 13, 13, 13, 14, 14, 15, 15, 15,
+    15, 16, 16, 16, 17, 17, 17, 18, 18, 18, 19, 19, 19, 20, 20, 20, 20, 
+    21, 22, 22, 22, 23, 23, 23, 24, 25, 25, 25, 26, 27, 28, 28, 28, 29,
+    29, 32, 34, 34, 36, 36, 36, 37, 37, 43, 43, 44, 44, 45, 49, 49, 49,
+    51, 51, 51, 51, 52, 53, 54, 54, 57, 58, 58, 60, 60, 60, 61, 64, 67,
+    73, 76, 76, 78, 84, 89, 96, 99, 109, 112, 120, 122, 129, 135, 141,
+    148, 149, 151, 154, 177, 181, 187, 190, 199, 211, 221, 226, 235, 239,
+    244, 246, 282, 305, 306, 333, 464, 560, 572, 589, 604, 743, 823, 2349]
+    x = np.array(moths)
+
+    # grid solver
+    d = diversity.min_add_sample(x, solver="grid", diagnostics=True)
+    assert np.isclose(d['n'] * d['x*'], 166509, rtol=1)
+
+    # fsolve should back off:
+    with pytest.warns(UserWarning):
+        d = diversity.min_add_sample(x, solver="fsolve",
+                                     diagnostics=True)
+        print(d)
+        assert np.isclose(d['n'] * d['x*'], 166509, rtol=1)
+
+
+
     
 
     

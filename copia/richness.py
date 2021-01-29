@@ -371,8 +371,8 @@ def min_add_sample(x, solver="grid", search_space=(0, 100, 1e6),
         counts) for each individual species.
     solver : str (default = 'grid')
         Solver to find x* = the intersection between h() and v():
-            - 'grid': hardcode grid search (less precise, but recommended)
-            - 'fsolve': numpy optimization (more precise, less stable in practice)
+            - 'grid': hardcode grid search (slower, but recommended)
+            - 'fsolve': numpy optimization (faster, but less stable in practice)
     search_space : 3-way tuple (default = (0, 100, 1e5))
         Search space to be used in the grid search:
             (start, end, number of samples)
@@ -394,14 +394,22 @@ def min_add_sample(x, solver="grid", search_space=(0, 100, 1e6),
         the estimated number of individuals in the original
         population.) We only implement the case g = 1.
 
-    References
+    Notes
     -------
+    If the "fsolve" solver fails, the function will automatically back
+    off to the "grid". A user warning will be raised in this case.
+
+    References
+    ----------
     - A. Chao et al., 'Sufficient sampling for asymptotic minimum
     species richness estimators', Ecology (2009), 1125-1133.
     - M. Kestemont & F. Karsdorp, 'Estimating the Loss of Medieval
     Literature with an Unseen Species Model from Ecodiversity',
     Computational Humanities Research (2020), 44-55.
     """
+
+    if solver not in ('grid', 'fsolve'):
+        raise ValueError(f'Unsupported "solver" argument: {solver}')
 
     x = x[x > 0]
     n = x.sum()
@@ -411,6 +419,20 @@ def min_add_sample(x, solver="grid", search_space=(0, 100, 1e6),
     h = lambda x: 2 * f1 * (1 + x)
     v = lambda x: np.exp(x * (2 * f2 / f1))
 
+    if solver == "fsolve":
+        def intersection(func1, func2, x0):
+            return fsolve(lambda x: func1(x) - func2(x), x0)[0]
+        x_ast = intersection(h, v, n)
+
+        # check result
+        diff_intersect = abs(h(x_ast) - v(x_ast))
+        if diff_intersect > tolerance:
+            print('diff_intersect:', diff_intersect)
+            msg = f"Tolerance criterion not met via fsolve: {diff_intersect} > {tolerance}"
+            msg += "-> backing off to grid-solver."
+            warnings.warn(msg)
+            solver = "grid" # set for back-off
+
     if solver == "grid":
         search = np.linspace(*[int(i) for i in search_space])
         hs = np.array(h(search))
@@ -418,20 +440,11 @@ def min_add_sample(x, solver="grid", search_space=(0, 100, 1e6),
         diffs = np.abs(hs - vs)
         x_ast = search[diffs.argmin()]
 
-    elif solver == "fsolve":
-
-        def intersection(func1, func2, x0):
-            return fsolve(lambda x: func1(x) - func2(x), x0)[0]
-
-        x_ast = intersection(h, v, n)
-
-    else:
-        raise ValueError(f'Unsupported "solver" argument: {solver}')
-
     # check result
     diff_intersect = abs(h(x_ast) - v(x_ast))
     if not diff_intersect < tolerance:
         warnings.warn(f"Tolerance criterion not met: {diff_intersect} > {tolerance}")
+        
     if x_ast <= 0:
         warnings.warn(f"Optimization failure likely: {x_ast} <= 0")
     
