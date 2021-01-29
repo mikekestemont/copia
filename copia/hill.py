@@ -94,18 +94,19 @@ def empirical_hill(x, q_values):
 
 
 def hill_numbers(x, q_min=0, q_max=3, step=0.1,
-                 n_iter=1000, conf=0.95, n_jobs=1):
+                 n_iter=1000, conf=0.95, n_jobs=1, seed=None):
     x = np.array(x, dtype=np.int64)
     q = np.arange(q_min, q_max + step, step)
 
     emp = bootstrap(x, fn=partial(empirical_hill, q_values=q),
-                       n_iter=n_iter,
-                       conf=conf,
-                       n_jobs=n_jobs)
+                    n_iter=n_iter,
+                    conf=conf,
+                    n_jobs=n_jobs,
+                    seed=seed)
 
     est = bootstrap(x, fn=partial(estimated_hill, q_values=q),
-                       n_iter=n_iter,
-                       conf=conf,
-                       n_jobs=n_jobs)
-
+                    n_iter=n_iter,
+                    conf=conf,
+                    n_jobs=n_jobs,
+                    seed=seed)
     return emp, est
