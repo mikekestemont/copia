@@ -15,6 +15,16 @@ def to_abundance(species):
     return np.array(tuple(Counter(species).values()),
            dtype=np.int)
 
+
+def basic_stats(x):
+    assert isinstance(x, np.ndarray)
+    return {'f1': np.count_nonzero(x == 1),
+            'f2': np.count_nonzero(x == 2),
+            'f3': np.count_nonzero(x == 3),
+            'f4': np.count_nonzero(x == 4),
+            'S' : (x > 0).sum(),
+            'n' : x.sum()}
+
 class Parallel:
     def __init__(self, n_workers, n_tasks):
         self.pool = mp.Pool(n_workers)
