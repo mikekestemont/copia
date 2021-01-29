@@ -38,15 +38,6 @@ class Parallel:
         return self._results
 
 
-def dbinom(x, size, prob):
-    d = stats.binom(size, prob).pmf(x)
-    return 1 if np.isnan(d) else d
-
-
-def lchoose(n, k):
-    return gammaln(n + 1) - gammaln(k + 1) - gammaln(n - k + 1)
-
-
 def check_random_state(seed):
     if seed is np.random:
         return np.random.mtrand._rand

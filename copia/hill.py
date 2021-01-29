@@ -8,8 +8,7 @@ import numpy as np
 from scipy.special import digamma
 from scipy.special import binom as choose
 
-from .utils import lchoose
-from .stats import bootstrap
+from .stats import bootstrap, lchoose
 
 
 def _chao_7a(t, n, f1, f2):

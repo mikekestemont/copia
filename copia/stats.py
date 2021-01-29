@@ -16,6 +16,10 @@ def dbinom(x, size, prob):
     return 1 if np.isnan(d) else d
 
 
+def lchoose(n, k):
+    return gammaln(n + 1) - gammaln(k + 1) - gammaln(n - k + 1)
+
+
 def bt_prob(x):
     x, n = x[x > 0], x.sum()
     f1, f2 = (x == 1).sum(), (x == 2).sum()
