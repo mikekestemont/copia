@@ -137,13 +137,14 @@ def richness_density(d, empirical=None, normalize=False, title=None, ax=None, fi
     return ax
 
 
-def survival(assemblages, method='chao1'):
-    survival_estimates = []
-    plt.Figure(figsize=(16, 8))
+def survival(assemblages, method='chao1', ax=None, figsize=(16, 8)):
+    if ax is None:
+        fig, ax = plt.subplots(figsize=figsize)
 
+    survival_estimates = []
     method = method.lower()
 
-    for label, assemblage in assemblages.items():
+    for i, (label, assemblage) in enumerate(assemblages.items()):
         d = bootstrap(assemblage, fn=ESTIMATORS[method])
         
         if method == 'minsample':
@@ -154,13 +155,6 @@ def survival(assemblages, method='chao1'):
             lci = 1 / (d['lci'] / empirical)
             uci = 1 / (d['uci'] / empirical)
         
-            # plot and append:
-            survival_estimates.append((label, surv_norm, lci, uci))
-            color = next(plt.gca()._get_lines.prop_cycler)['color']
-            sb.kdeplot(bt_norm, label=label, ax=plt.gca(),
-                       color=color, shade=True)
-            plt.axvline(surv_norm, linewidth=2, color=color)
-        
         else:
             # normalize to proportions:
             empirical = empirical_richness(assemblage, species=True)
@@ -169,26 +163,22 @@ def survival(assemblages, method='chao1'):
             lci = empirical / d['lci']
             uci = empirical / d['uci']
 
-            # plot and append:
-            survival_estimates.append((label, surv_norm, lci, uci))
-            color = next(plt.gca()._get_lines.prop_cycler)['color']
-            sb.kdeplot(bt_norm, label=label, ax=plt.gca(),
-                       color=color, shade=True)
-            plt.axvline(surv_norm, linewidth=2, color=color)
-            #q_11, q_50, q_89 = quantile(bt_norm, [0.11, 0.5, 0.89], weights=None)
-            #plt.axvline(q_11, ls='--', color=color)
-            #plt.axvline(q_89, ls='--', color=color)
+        # plot and append:
+        survival_estimates.append((label, surv_norm, lci, uci))
+        sb.kdeplot(bt_norm, label=label, ax=ax, color=f"C{i}", shade=True)
+        ax.axvline(surv_norm, linewidth=2, color=f"C{i}")
+        #q_11, q_50, q_89 = quantile(bt_norm, [0.11, 0.5, 0.89], weights=None)
+        #plt.axvline(q_11, ls='--', color=color)
+        #plt.axvline(q_89, ls='--', color=color)
         
     if method == 'minsample':
-        plt.xlim([0, .5])
-        plt.ylabel('Kernel density estimate (sightings)')
-        plt.xlabel('Proportion of attested sightings')
+        ax.set(xlim=(0, 0.5), ylabel="Kernel density estimate (sightings)",
+               xlabel="Proportion of attested sightings")
     else:
-        plt.xlim([0, 1])
-        plt.ylabel('Kernel density estimate (species survival)')
-        plt.xlabel('Percentage of surviving species')
+        ax.set(xlim=(0, 1), ylabel="Kernel density estimate (species survival)",
+               xlabel="Percentage of surviving species")
     
-    plt.legend()
+    ax.legend()
 
     return pd.DataFrame(survival_estimates,
                         columns=['label', 'survival', 'lCI', 'uCI'])
