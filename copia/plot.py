@@ -262,10 +262,7 @@ def hill_plot(emp, est, q_min=0, q_max=3, step=0.1,
               figsize=None, ax=None, add_densities=True,
               title=None):
 
-    plt.style.use('bmh')
-    COLORS = BLUE, RED, PURPLE = '#348ABD', '#A60628', '#7A68A6'
-    
-    c_emp, c_est = RED, BLUE
+    c_emp, c_est = 'C0', 'C1'
     q = np.arange(q_min, q_max + step, step)
 
     lci_emp, lci_est = emp['lci'], est['lci']
@@ -285,12 +282,8 @@ def hill_plot(emp, est, q_min=0, q_max=3, step=0.1,
     ax.fill_between(q, lci_emp, uci_emp, color=c_emp, alpha=0.3)
     ax.fill_between(q, lci_est, uci_est, color=c_est, alpha=0.3)
 
-    ax.set_xlabel('Order $q$')
-    ax.set_ylabel('Hill numbers')
-    ax.set_ylim(y_min, y_max)
-
-    if title:
-        plt.title(title)
+    ax.set(xlabel='Order $q$', ylabel='Hill numbers', ylim=(y_min, y_max)
+           title=title)
 
     ax.legend(
         bbox_to_anchor=(0.0, 1.02, 1.0, 0.102),
@@ -304,15 +297,13 @@ def hill_plot(emp, est, q_min=0, q_max=3, step=0.1,
 
     if add_densities:
         left, bottom, width, height = [0.58, 0.5, 0.3, 0.35]
-        ax2 = plt.gcf().add_axes([left, bottom, width, height])
+        ax2 = fig.add_axes([left, bottom, width, height])
         labels = 'Richness', 'Shannon', 'Simpson'
 
         for k, (i, label) in enumerate(zip(np.where(np.isin(q, (0, 1, 3)))[0], labels)):
-            sb.kdeplot(
-                bt_est[:, i], label=label, c = COLORS[k], ax=ax2
-            )
+            sb.kdeplot(bt_est[:, i], label=label, c=f"C{k}", ax=ax2)
         
-        l1,  l2, l3 = ax2.lines
+        l1, l2, l3 = ax2.lines
 
         # Get the xy data from the lines so that we can shade
         x1 = l1.get_xydata()[:, 0]
@@ -322,12 +313,14 @@ def hill_plot(emp, est, q_min=0, q_max=3, step=0.1,
         x3 = l3.get_xydata()[:, 0]
         y3 = l3.get_xydata()[:, 1]
 
-        ax2.fill_between(x1, y1, color=BLUE, alpha=0.3)
-        ax2.fill_between(x2, y2, color=RED, alpha=0.3)
-        ax2.fill_between(x3, y3, color=PURPLE, alpha=0.3)
+        ax2.fill_between(x1, y1, color="C0", alpha=0.3)
+        ax2.fill_between(x2, y2, color="C1", alpha=0.3)
+        ax2.fill_between(x3, y3, color="C2", alpha=0.3)
 
         ax2.set_xlabel('Hill numbers')
         ax2.set_ylabel('Density')
+
+    return ax
 
 
 def evenness_plot(assemblages, incl_CI=False, q_min=0, q_max=3, step=0.1):
