@@ -18,18 +18,18 @@ import pandas as pd
 from .stats import quantile, rarefaction_extrapolation, bootstrap
 from .richness import *
 
-def abundance_counts(x):
-    plt.clf()
-    plt.Figure(figsize=(14, 5))
-    ax = plt.gca()
+
+def abundance_counts(x, ax=None, figsize=None):
+    if ax is None:
+        fig, ax = plt.subplots(figsize=figsize)
+
     x = np.array(sorted(x, reverse=True))
-    plt.bar(range(len(x)), x, alpha=.7, align='center',
-            color=next(ax._get_lines.prop_cycler)['color'])
-    plt.tick_params(axis='x', which='both', bottom=False,
-                    top=False, labelbottom=False)
-    plt.xlabel('Species')
-    plt.ylabel('Number of sightings')
-    plt.title('Distribution of sightings over species')
+    ax.bar(range(len(x)), x, alpha=.7, align='center',
+           color=next(ax._get_lines.prop_cycler)['color'])
+    ax.tick_params(axis='x', which='both', bottom=False,
+                   top=False, labelbottom=False)
+    ax.set(xlabel='Species', ylabel='Number of sightings',
+           title='Distribution of sightings over species')
     
     textstr = '\n'.join((
         f'Species: {np.count_nonzero(x)}',
@@ -37,7 +37,7 @@ def abundance_counts(x):
         f'$f_1$: {np.count_nonzero(x == 1)}',
         f'$f_2$: {np.count_nonzero(x == 2)}',
         ))
-    plt.annotate(textstr, xy=(0.75, 0.75), xycoords='axes fraction',
+    ax.annotate(textstr, xy=(0.75, 0.75), xycoords='axes fraction',
                  va='center', backgroundcolor='white')
 
     def func(x, a, b, c):
@@ -45,41 +45,37 @@ def abundance_counts(x):
     
     popt, _ = curve_fit(func, range(len(x)), x,
           bounds=([-np.inf, 0.0001, -np.inf], [np.inf, 10, np.inf]))
-    ax2 = plt.gca().twinx()
+    ax2 = ax.twinx()
     ax2.grid(None)
     ax2.plot(range(len(x)), func(range(len(x)), *popt), 'r--', 
-         label='fit: a=%5.3f, b=%5.3f, c=%5.3f' % tuple(popt))
-    ax2.set_ylabel("Exponential fit")
-    ax2.set_ylim((1, max(x)))
+             label='fit: a=%5.3f, b=%5.3f, c=%5.3f' % tuple(popt))
+    ax2.set(ylabel="Exponential fit", ylim=(1, max(x)))
+    return ax
 
 
-def abundance_histogram(x):
-    plt.clf()
+def abundance_histogram(x, ax=None, figsize=None):
+    if ax is None:
+        fig, ax = plt.subplots(figsize=figsize)
+        
     x = np.array(sorted(x, reverse=True))
-    plt.Figure(figsize=(14, 5))
-    ax = plt.gca()
 
-    textstr = '\n'.join((
-        f'Species: {np.count_nonzero(x)}',
-        f'Observations: {x.sum()}',
-        f'$f_1$: {np.count_nonzero(x == 1)}',
-        f'$f_2$: {np.count_nonzero(x == 2)}',
-        ))
+    textstr = (f'Species: {np.count_nonzero(x)}\n'
+               f'Observations: {x.sum()}\n'
+               f'$f_1$: {np.count_nonzero(x == 1)}\n'
+               f'$f_2$: {np.count_nonzero(x == 2)}')
     
     counter = Counter(x)
     max_count = max(counter.keys())
     pos = [k for k in range(1, max_count + 1)]
     x = np.array([counter[k] for k in pos])
 
-    plt.bar(pos, x, alpha=.7, align='center',
-            color=next(ax._get_lines.prop_cycler)['color'])
+    ax.bar(pos, x, alpha=.7, align='center',
+           color=next(ax._get_lines.prop_cycler)['color'])
 
-    plt.xlabel('Species')
-    plt.title('Sightings histogram')
+    ax.set(xlabel='Species', title='Sightings histogram')
     
-    
-    plt.annotate(textstr, xy=(0.7, 0.7), xycoords='axes fraction',
-                 va='center', backgroundcolor='white')
+    ax.annotate(textstr, xy=(0.7, 0.7), xycoords='axes fraction',
+                va='center', backgroundcolor='white')
     
     # https://github.com/jkitzes/macroeco/blob/master/macroeco/models/_distributions.pys
     mu = np.mean(x)
@@ -87,34 +83,36 @@ def abundance_histogram(x):
     p = optim.brentq(eq, 1e-16, 1-1e-16, args=(mu), disp=True)
     estims = logser.pmf(pos, p)
 
-    ax2 = plt.gca().twinx()
+    ax2 = ax.twinx()
     ax2.plot(pos, estims, 'r--')
     ax2.grid(None)
-    ax2.set_ylabel("Fisher's log series (pmf)")
-    ax2.set_ylim((0, 1))
+    ax2.set(ylabel="Fisher's log series (pmf)", ylim =(0, 1))
+    return ax
 
 
-def richness_density(d, empirical=None, normalize=False, title=None):
+def richness_density(d, empirical=None, normalize=False, title=None, ax=None, figsize=(15, 15)):
     if normalize and not empirical:
         msg = """If normalize is  set to True, `empirical`
                  richness must be provided."""
         raise ValueError(msg)
-    plt.Figure(figsize=(15, 15))
+
+    if ax is None:
+        fig, ax = plt.subplots(figsize=figsize)
 
     if normalize:
         d['bootstrap'] = empirical / d['bootstrap']
 
-    sb.displot(d['bootstrap'], kde=True)
+    sb.histplot(d['bootstrap'], kde=True, ax=ax)
 
     q_11, q_50, q_89 = quantile(d['bootstrap'], [0.11, 0.5, 0.89], weights=None)
     q_m, q_p = q_50 - q_11, q_89 - q_50
 
-    plt.axvline(q_50, color='red')
-    plt.axvline(q_11, ls='--', color='red')
-    plt.axvline(q_89, ls='--', color='red')
+    ax.axvline(q_50, color='red')
+    ax.axvline(q_11, ls='--', color='red')
+    ax.axvline(q_89, ls='--', color='red')
 
     if not normalize and empirical:
-        plt.axvline(empirical, ls='--', color='green', linewidth=2)
+        ax.axvline(empirical, ls='--', color='green', linewidth=2)
 
     # Format the quantile display.
     fmt = "{{0:{0}}}".format(".2f").format
@@ -122,22 +120,21 @@ def richness_density(d, empirical=None, normalize=False, title=None):
     textstr = textstr.format(fmt(q_50), fmt(q_m), fmt(q_p))
     textstr = 'Estimate: ' + textstr
 
-    plt.annotate(textstr, xy=(0.5, 0.7), xycoords='axes fraction',
-                 va='center_baseline', backgroundcolor='white', 
-                 fontsize=12)
+    ax.annotate(textstr, xy=(0.5, 0.7), xycoords='axes fraction',
+                va='center_baseline', backgroundcolor='white', 
+                fontsize=12)
     
     if normalize:
-        plt.xlim([0, 1])
-    
-    if not survival:
-        plt.xlabel(r"Richness")
-    else:
-        plt.xlabel(r"Survival ratio")
-    plt.ylabel(r"Kernel density")
-    if not title:
-        plt.title(r"Estimate: bootstrap values (KDE and CI)")
-    else:
-        plt.title(title)
+        ax.set_xlim([0, 1])
+
+
+    ax.set(
+        xlabel="Richness" if not survival else "Survival ratio",
+        ylabel="Kernel density",
+        title = "Estimate: bootstrap values (KDE and CI)" if not title else title
+    )
+
+    return ax
 
 
 def survival(assemblages, method='chao1'):
