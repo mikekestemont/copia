@@ -347,9 +347,9 @@ def evenness_plot(assemblages, incl_CI=False, q_min=0, q_max=3, step=0.1, ax=Non
             ax.plot(q, uci, c=f"C{i}", linewidth=.8)
             ax.fill_between(q, lci, uci, color=f"C{i}", alpha=0.3)
     
-    ax.xlabel('Diversity order ($q$)', fontsize=16)
-    ax.ylabel(r'Evenness: $({}^qD - 1) / (\hat{S} - 1)$', fontsize=16)
-    ax.title('Evenness profile', fontsize=20)
+    ax.set_xlabel('Diversity order ($q$)', fontsize=16)
+    ax.set_ylabel(r'Evenness: $({}^qD - 1) / (\hat{S} - 1)$', fontsize=16)
+    ax.set_title('Evenness profile', fontsize=20)
     ax.legend(fontsize=14)
 
     return ax
