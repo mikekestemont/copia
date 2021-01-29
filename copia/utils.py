@@ -45,3 +45,19 @@ def dbinom(x, size, prob):
 
 def lchoose(n, k):
     return gammaln(n + 1) - gammaln(k + 1) - gammaln(n - k + 1)
+
+
+def check_random_state(seed):
+    if seed is np.random:
+        return np.random.mtrand._rand
+    if seed is None:
+        return np.random.RandomState()
+    if isinstance(seed, numbers.Integral):
+        return np.random.RandomState(seed)
+    if isinstance(seed, np.random.RandomState):
+        return seed
+    if isinstance(seed, np.random.Generator):
+        return seed
+    raise ValueError(
+        "%r cannot be used to seed a numpy.random.RandomState" " instance" % seed
+    )
