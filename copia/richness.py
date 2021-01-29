@@ -495,7 +495,7 @@ def diversity(
         msg = "`x` appears to be empty"
         raise ValueError(msg)
 
-    if method is not None and method.lower() not in estimators:
+    if method is not None and method.lower() not in ESTIMATORS:
         raise ValueError(f"Unknown estimation method `{method}`.")
 
     if method is None:

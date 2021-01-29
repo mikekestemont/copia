@@ -282,7 +282,7 @@ def hill_plot(emp, est, q_min=0, q_max=3, step=0.1,
     ax.fill_between(q, lci_emp, uci_emp, color=c_emp, alpha=0.3)
     ax.fill_between(q, lci_est, uci_est, color=c_est, alpha=0.3)
 
-    ax.set(xlabel='Order $q$', ylabel='Hill numbers', ylim=(y_min, y_max)
+    ax.set(xlabel='Order $q$', ylabel='Hill numbers', ylim=(y_min, y_max),
            title=title)
 
     ax.legend(
