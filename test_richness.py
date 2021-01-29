@@ -80,6 +80,25 @@ def test_minsample():
     d = diversity.diversity(x, 'minsample', solver='fsolve', diagnostics=True)
     assert np.isclose(d['x*'], 2.221115367, rtol=0.01)
     assert np.isclose(d['richness'], 161 + 357.600, rtol=1)
+
+
+def test_spider():
+    # test chao1 on spider data (both girdled and logged):
+    # https://cran.r-project.org/web/packages/iNEXT/vignettes/Introduction.html
+    spider_girdled = [46, 22, 17, 15, 15, 9, 8, 6, 6, 4, 2, 2,
+                      2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+    x = np.array(spider_girdled)
+    assert np.isclose(diversity.chao1(x), 43.893, rtol=0.001)
+
+    spider_logged = [88, 22, 16, 15, 13, 10, 8, 8, 7, 7, 7, 5,
+                     4, 4, 4, 3, 3, 3, 3, 2, 2, 2, 2, 1, 1, 1,
+                     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+    x = np.array(spider_logged)
+    assert np.isclose(diversity.chao1(x), 61.403, rtol=0.001)
+
+
+    
+
     
 
 
