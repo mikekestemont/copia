@@ -48,10 +48,17 @@ class Parallel:
         return self._results
 
 
-def dbinom(x, size, prob):
-    d = stats.binom(size, prob).pmf(x)
-    return 1 if np.isnan(d) else d
-
-
-def lchoose(n, k):
-    return gammaln(n + 1) - gammaln(k + 1) - gammaln(n - k + 1)
+def check_random_state(seed):
+    if seed is np.random:
+        return np.random.mtrand._rand
+    if seed is None:
+        return np.random.RandomState()
+    if isinstance(seed, numbers.Integral):
+        return np.random.RandomState(seed)
+    if isinstance(seed, np.random.RandomState):
+        return seed
+    if isinstance(seed, np.random.Generator):
+        return seed
+    raise ValueError(
+        "%r cannot be used to seed a numpy.random.RandomState" " instance" % seed
+    )

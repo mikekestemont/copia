@@ -8,12 +8,16 @@ import scipy.stats
 from scipy.special import gammaln
 from tqdm import tqdm
 
-from .utils import Parallel
+from .utils import Parallel, check_random_state
 
 
 def dbinom(x, size, prob):
     d = scipy.stats.binom(size, prob).pmf(x)
     return 1 if np.isnan(d) else d
+
+
+def lchoose(n, k):
+    return gammaln(n + 1) - gammaln(k + 1) - gammaln(n - k + 1)
 
 
 def bt_prob(x):
@@ -34,10 +38,12 @@ def bt_prob(x):
 def bootstrap(x, fn,
               n_iter: int = 1000,
               conf: float = 0.95,
-              n_jobs: int = 1):
+              n_jobs: int = 1,
+              seed=None):
+    rnd = check_random_state(seed)
     pro = fn(x)
     p, n = bt_prob(x), x.sum()
-    data_bt = np.random.multinomial(n, p, n_iter)
+    data_bt = rnd.multinomial(n, p, n_iter)
     
     pool = Parallel(n_jobs, n_iter)
     for row in data_bt:

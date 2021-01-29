@@ -18,18 +18,18 @@ import pandas as pd
 from .stats import quantile, rarefaction_extrapolation, bootstrap
 from .richness import *
 
-def abundance_counts(x):
-    plt.clf()
-    plt.Figure(figsize=(14, 5))
-    ax = plt.gca()
+
+def abundance_counts(x, ax=None, figsize=None):
+    if ax is None:
+        fig, ax = plt.subplots(figsize=figsize)
+
     x = np.array(sorted(x, reverse=True))
-    plt.bar(range(len(x)), x, alpha=.7, align='center',
-            color=next(ax._get_lines.prop_cycler)['color'])
-    plt.tick_params(axis='x', which='both', bottom=False,
-                    top=False, labelbottom=False)
-    plt.xlabel('Species')
-    plt.ylabel('Number of sightings')
-    plt.title('Distribution of sightings over species')
+    ax.bar(range(len(x)), x, alpha=.7, align='center',
+           color=next(ax._get_lines.prop_cycler)['color'])
+    ax.tick_params(axis='x', which='both', bottom=False,
+                   top=False, labelbottom=False)
+    ax.set(xlabel='Species', ylabel='Number of sightings',
+           title='Distribution of sightings over species')
     
     textstr = '\n'.join((
         f'Species: {np.count_nonzero(x)}',
@@ -37,7 +37,7 @@ def abundance_counts(x):
         f'$f_1$: {np.count_nonzero(x == 1)}',
         f'$f_2$: {np.count_nonzero(x == 2)}',
         ))
-    plt.annotate(textstr, xy=(0.75, 0.75), xycoords='axes fraction',
+    ax.annotate(textstr, xy=(0.75, 0.75), xycoords='axes fraction',
                  va='center', backgroundcolor='white')
 
     def func(x, a, b, c):
@@ -45,41 +45,37 @@ def abundance_counts(x):
     
     popt, _ = curve_fit(func, range(len(x)), x,
           bounds=([-np.inf, 0.0001, -np.inf], [np.inf, 10, np.inf]))
-    ax2 = plt.gca().twinx()
+    ax2 = ax.twinx()
     ax2.grid(None)
     ax2.plot(range(len(x)), func(range(len(x)), *popt), 'r--', 
-         label='fit: a=%5.3f, b=%5.3f, c=%5.3f' % tuple(popt))
-    ax2.set_ylabel("Exponential fit")
-    ax2.set_ylim((1, max(x)))
+             label='fit: a=%5.3f, b=%5.3f, c=%5.3f' % tuple(popt))
+    ax2.set(ylabel="Exponential fit", ylim=(1, max(x)))
+    return ax
 
 
-def abundance_histogram(x):
-    plt.clf()
+def abundance_histogram(x, ax=None, figsize=None):
+    if ax is None:
+        fig, ax = plt.subplots(figsize=figsize)
+        
     x = np.array(sorted(x, reverse=True))
-    plt.Figure(figsize=(14, 5))
-    ax = plt.gca()
 
-    textstr = '\n'.join((
-        f'Species: {np.count_nonzero(x)}',
-        f'Observations: {x.sum()}',
-        f'$f_1$: {np.count_nonzero(x == 1)}',
-        f'$f_2$: {np.count_nonzero(x == 2)}',
-        ))
+    textstr = (f'Species: {np.count_nonzero(x)}\n'
+               f'Observations: {x.sum()}\n'
+               f'$f_1$: {np.count_nonzero(x == 1)}\n'
+               f'$f_2$: {np.count_nonzero(x == 2)}')
     
     counter = Counter(x)
     max_count = max(counter.keys())
     pos = [k for k in range(1, max_count + 1)]
     x = np.array([counter[k] for k in pos])
 
-    plt.bar(pos, x, alpha=.7, align='center',
-            color=next(ax._get_lines.prop_cycler)['color'])
+    ax.bar(pos, x, alpha=.7, align='center',
+           color=next(ax._get_lines.prop_cycler)['color'])
 
-    plt.xlabel('Species')
-    plt.title('Sightings histogram')
+    ax.set(xlabel='Species', title='Sightings histogram')
     
-    
-    plt.annotate(textstr, xy=(0.7, 0.7), xycoords='axes fraction',
-                 va='center', backgroundcolor='white')
+    ax.annotate(textstr, xy=(0.7, 0.7), xycoords='axes fraction',
+                va='center', backgroundcolor='white')
     
     # https://github.com/jkitzes/macroeco/blob/master/macroeco/models/_distributions.pys
     mu = np.mean(x)
@@ -87,34 +83,36 @@ def abundance_histogram(x):
     p = optim.brentq(eq, 1e-16, 1-1e-16, args=(mu), disp=True)
     estims = logser.pmf(pos, p)
 
-    ax2 = plt.gca().twinx()
+    ax2 = ax.twinx()
     ax2.plot(pos, estims, 'r--')
     ax2.grid(None)
-    ax2.set_ylabel("Fisher's log series (pmf)")
-    ax2.set_ylim((0, 1))
+    ax2.set(ylabel="Fisher's log series (pmf)", ylim =(0, 1))
+    return ax
 
 
-def richness_density(d, empirical=None, normalize=False, title=None):
+def richness_density(d, empirical=None, normalize=False, title=None, ax=None, figsize=(15, 15)):
     if normalize and not empirical:
         msg = """If normalize is  set to True, `empirical`
                  richness must be provided."""
         raise ValueError(msg)
-    plt.Figure(figsize=(15, 15))
+
+    if ax is None:
+        fig, ax = plt.subplots(figsize=figsize)
 
     if normalize:
         d['bootstrap'] = empirical / d['bootstrap']
 
-    sb.displot(d['bootstrap'], kde=True)
+    sb.histplot(d['bootstrap'], kde=True, ax=ax)
 
     q_11, q_50, q_89 = quantile(d['bootstrap'], [0.11, 0.5, 0.89], weights=None)
     q_m, q_p = q_50 - q_11, q_89 - q_50
 
-    plt.axvline(q_50, color='red')
-    plt.axvline(q_11, ls='--', color='red')
-    plt.axvline(q_89, ls='--', color='red')
+    ax.axvline(q_50, color='red')
+    ax.axvline(q_11, ls='--', color='red')
+    ax.axvline(q_89, ls='--', color='red')
 
     if not normalize and empirical:
-        plt.axvline(empirical, ls='--', color='green', linewidth=2)
+        ax.axvline(empirical, ls='--', color='green', linewidth=2)
 
     # Format the quantile display.
     fmt = "{{0:{0}}}".format(".2f").format
@@ -122,32 +120,32 @@ def richness_density(d, empirical=None, normalize=False, title=None):
     textstr = textstr.format(fmt(q_50), fmt(q_m), fmt(q_p))
     textstr = 'Estimate: ' + textstr
 
-    plt.annotate(textstr, xy=(0.5, 0.7), xycoords='axes fraction',
-                 va='center_baseline', backgroundcolor='white', 
-                 fontsize=12)
+    ax.annotate(textstr, xy=(0.5, 0.7), xycoords='axes fraction',
+                va='center_baseline', backgroundcolor='white', 
+                fontsize=12)
     
     if normalize:
-        plt.xlim([0, 1])
-    
-    if not survival:
-        plt.xlabel(r"Richness")
-    else:
-        plt.xlabel(r"Survival ratio")
-    plt.ylabel(r"Kernel density")
-    if not title:
-        plt.title(r"Estimate: bootstrap values (KDE and CI)")
-    else:
-        plt.title(title)
+        ax.set_xlim([0, 1])
 
 
-def survival(assemblages, method='chao1'):
+    ax.set(
+        xlabel="Richness" if not survival else "Survival ratio",
+        ylabel="Kernel density",
+        title = "Estimate: bootstrap values (KDE and CI)" if not title else title
+    )
+
+    return ax
+
+
+def survival(assemblages, method='chao1', ax=None, figsize=(16, 8)):
+    if ax is None:
+        fig, ax = plt.subplots(figsize=figsize)
+
     survival_estimates = []
-    plt.Figure(figsize=(16, 8))
-
     method = method.lower()
 
-    for label, assemblage in assemblages.items():
-        d = bootstrap(assemblage, fn=estimators[method])
+    for i, (label, assemblage) in enumerate(assemblages.items()):
+        d = bootstrap(assemblage, fn=ESTIMATORS[method])
         
         if method == 'minsample':
             # normalize to proportions:
@@ -157,13 +155,6 @@ def survival(assemblages, method='chao1'):
             lci = 1 / (d['lci'] / empirical)
             uci = 1 / (d['uci'] / empirical)
         
-            # plot and append:
-            survival_estimates.append((label, surv_norm, lci, uci))
-            color = next(plt.gca()._get_lines.prop_cycler)['color']
-            sb.kdeplot(bt_norm, label=label, ax=plt.gca(),
-                       color=color, shade=True)
-            plt.axvline(surv_norm, linewidth=2, color=color)
-        
         else:
             # normalize to proportions:
             empirical = empirical_richness(assemblage, species=True)
@@ -172,37 +163,35 @@ def survival(assemblages, method='chao1'):
             lci = empirical / d['lci']
             uci = empirical / d['uci']
 
-            # plot and append:
-            survival_estimates.append((label, surv_norm, lci, uci))
-            color = next(plt.gca()._get_lines.prop_cycler)['color']
-            sb.kdeplot(bt_norm, label=label, ax=plt.gca(),
-                       color=color, shade=True)
-            plt.axvline(surv_norm, linewidth=2, color=color)
-            #q_11, q_50, q_89 = quantile(bt_norm, [0.11, 0.5, 0.89], weights=None)
-            #plt.axvline(q_11, ls='--', color=color)
-            #plt.axvline(q_89, ls='--', color=color)
+        # plot and append:
+        survival_estimates.append((label, surv_norm, lci, uci))
+        sb.kdeplot(bt_norm, label=label, ax=ax, color=f"C{i}", shade=True)
+        ax.axvline(surv_norm, linewidth=2, color=f"C{i}")
+        #q_11, q_50, q_89 = quantile(bt_norm, [0.11, 0.5, 0.89], weights=None)
+        #plt.axvline(q_11, ls='--', color=color)
+        #plt.axvline(q_89, ls='--', color=color)
         
     if method == 'minsample':
-        plt.xlim([0, .5])
-        plt.ylabel('Kernel density estimate (sightings)')
-        plt.xlabel('Proportion of attested sightings')
+        ax.set(xlim=(0, 0.5), ylabel="Kernel density estimate (sightings)",
+               xlabel="Proportion of attested sightings")
     else:
-        plt.xlim([0, 1])
-        plt.ylabel('Kernel density estimate (species survival)')
-        plt.xlabel('Percentage of surviving species')
+        ax.set(xlim=(0, 1), ylabel="Kernel density estimate (species survival)",
+               xlabel="Percentage of surviving species")
     
-    plt.legend()
+    ax.legend()
 
     return pd.DataFrame(survival_estimates,
                         columns=['label', 'survival', 'lCI', 'uCI'])
 
-def survival_error(df):
+def survival_error(df, ax=None, figsize=(12, 4)):
     estimates = df.sort_values('survival')
     errors = np.array(list(zip(estimates['lCI'], estimates['uCI']))).T
     errors[0] = estimates['survival'] - errors[0]
-    errors[1] -=  estimates['survival']
+    errors[1] -= estimates['survival']
 
-    fig, ax = plt.subplots(figsize=(12, 4))
+    if ax is None:
+        fig, ax = plt.subplots(figsize=figsize)
+
     ax.errorbar(np.arange(len(estimates)),
             estimates['survival'],
             yerr=errors,
@@ -211,14 +200,14 @@ def survival_error(df):
             label='diversity',
             ms=12)
     
-    plt.ylabel('Estimated survival ratio')
+    ax.set_ylabel('Estimated survival ratio')
     ax.set_xticks(np.arange(len(estimates)))
     ax.set_xticklabels(estimates['label'], fontsize=12)
+    return ax
 
 
-def species_accumulation_curve(x, max_steps=None, incl_minsample=False):
+def species_accumulation_curve(x, max_steps=None, incl_minsample=False, ax=None, figsize=(16, 12), n_iter=100):
     x = np.array(x, dtype=np.int)
-    plt.Figure(figsize=(16, 12))
 
     # min sample estimate to estimate max steps:
     minsample_est = diversity(x, method='minsample', 
@@ -226,7 +215,7 @@ def species_accumulation_curve(x, max_steps=None, incl_minsample=False):
     q_11, q_50, q_89 = quantile(minsample_est['bootstrap'],
                                [0.11, 0.5, 0.89], weights=None)
     
-    if not max_steps:
+    if max_steps is None:
         if incl_minsample:
             max_steps = int(max(minsample_est['bootstrap']))
         else:
@@ -237,46 +226,43 @@ def species_accumulation_curve(x, max_steps=None, incl_minsample=False):
 
     estim = bootstrap(x, fn=partial(rarefaction_extrapolation,
                                     max_steps=max_steps),
-                      n_iter=100)
+                      n_iter=n_iter)
     
     lci_pro = estim['lci']
     uci_pro = estim['uci']
     Dq = estim['richness']
 
+    if ax is None:
+        fig, ax = plt.subplots(figsize=figsize)
+
     # species accumulation
-    plt.plot(x.sum(), Dq[x.sum() - 1], 'o', markersize=8)
-    plt.plot(steps[interpolated], Dq[interpolated], color='C0')
-    plt.plot(steps[~interpolated], Dq[~interpolated], '--', color='C0')
-    plt.fill_between(steps, lci_pro, uci_pro, alpha=0.3)
-    plt.gca().set_ylim((0, plt.gca().get_ylim()[1]))
+    ax.plot(x.sum(), Dq[x.sum() - 1], 'o', markersize=8)
+    ax.plot(steps[interpolated], Dq[interpolated], color='C0')
+    ax.plot(steps[~interpolated], Dq[~interpolated], '--', color='C0')
+    ax.fill_between(steps, lci_pro, uci_pro, alpha=0.3)
 
     # min sample:
     if incl_minsample:
-        ax2 = plt.gca().twinx()
+        ax2 = ax.twinx()
         sb.kdeplot(minsample_est['bootstrap'], ax=ax2,
                 color='green', fill=True)
 
-        plt.axvline(q_50, color='green')
-        plt.axvline(q_11, ls='--', color='green')
-        plt.axvline(q_89, ls='--', color='green')
+        ax.axvline(q_50, color='green')
+        ax.axvline(q_11, ls='--', color='green')
+        ax.axvline(q_89, ls='--', color='green')
 
-        plt.gca().set_ylim((0, plt.gca().get_ylim()[1]))
         ax2.grid(None)
 
     # cosmetics etc.
-    plt.xlabel('sightings')
-    plt.ylabel('species')
-    plt.title('Species Accumulation Curve')    
+    ax.set(xlabel='sightings', ylabel='species', title='Species Accumulation Curve')
+    return ax
 
 
 def hill_plot(emp, est, q_min=0, q_max=3, step=0.1,
               figsize=None, ax=None, add_densities=True,
               title=None):
 
-    plt.style.use('bmh')
-    COLORS = BLUE, RED, PURPLE = '#348ABD', '#A60628', '#7A68A6'
-    
-    c_emp, c_est = RED, BLUE
+    c_emp, c_est = 'C0', 'C1'
     q = np.arange(q_min, q_max + step, step)
 
     lci_emp, lci_est = emp['lci'], est['lci']
@@ -296,12 +282,8 @@ def hill_plot(emp, est, q_min=0, q_max=3, step=0.1,
     ax.fill_between(q, lci_emp, uci_emp, color=c_emp, alpha=0.3)
     ax.fill_between(q, lci_est, uci_est, color=c_est, alpha=0.3)
 
-    ax.set_xlabel('Order $q$')
-    ax.set_ylabel('Hill numbers')
-    ax.set_ylim(y_min, y_max)
-
-    if title:
-        plt.title(title)
+    ax.set(xlabel='Order $q$', ylabel='Hill numbers', ylim=(y_min, y_max)
+           title=title)
 
     ax.legend(
         bbox_to_anchor=(0.0, 1.02, 1.0, 0.102),
@@ -315,15 +297,13 @@ def hill_plot(emp, est, q_min=0, q_max=3, step=0.1,
 
     if add_densities:
         left, bottom, width, height = [0.58, 0.5, 0.3, 0.35]
-        ax2 = plt.gcf().add_axes([left, bottom, width, height])
+        ax2 = fig.add_axes([left, bottom, width, height])
         labels = 'Richness', 'Shannon', 'Simpson'
 
         for k, (i, label) in enumerate(zip(np.where(np.isin(q, (0, 1, 3)))[0], labels)):
-            sb.kdeplot(
-                bt_est[:, i], label=label, c = COLORS[k], ax=ax2
-            )
+            sb.kdeplot(bt_est[:, i], label=label, c=f"C{k}", ax=ax2)
         
-        l1,  l2, l3 = ax2.lines
+        l1, l2, l3 = ax2.lines
 
         # Get the xy data from the lines so that we can shade
         x1 = l1.get_xydata()[:, 0]
@@ -333,24 +313,27 @@ def hill_plot(emp, est, q_min=0, q_max=3, step=0.1,
         x3 = l3.get_xydata()[:, 0]
         y3 = l3.get_xydata()[:, 1]
 
-        ax2.fill_between(x1, y1, color=BLUE, alpha=0.3)
-        ax2.fill_between(x2, y2, color=RED, alpha=0.3)
-        ax2.fill_between(x3, y3, color=PURPLE, alpha=0.3)
+        ax2.fill_between(x1, y1, color="C0", alpha=0.3)
+        ax2.fill_between(x2, y2, color="C1", alpha=0.3)
+        ax2.fill_between(x3, y3, color="C2", alpha=0.3)
 
         ax2.set_xlabel('Hill numbers')
         ax2.set_ylabel('Density')
 
+    return ax
 
-def evenness_plot(assemblages, incl_CI=False, q_min=0, q_max=3, step=0.1):
+
+def evenness_plot(assemblages, incl_CI=False, q_min=0, q_max=3, step=0.1, ax=None, figsize=(14, 14)):
+    if ax is None:
+        fig, ax = plt.subplots(figsize=figsize)
+    
     q = np.arange(q_min, q_max + step, step)
-    fig, ax = plt.subplots(figsize=(14, 14))
 
-    for label, d in assemblages.items():
+    for i, (label, d) in enumerate(assemblages.items()):
         lci, uci, richness = d['lci'], d['uci'], d['richness']
         
-        c = next(ax._get_lines.prop_cycler)['color']
         richness = (richness - 1) / (richness[0] - 1)
-        plt.plot(q, richness, label=label, c=c, linewidth=2)
+        ax.plot(q, richness, label=label, c=f"C{i}", linewidth=2)
 
         if incl_CI:
             # experimental...
@@ -360,11 +343,13 @@ def evenness_plot(assemblages, incl_CI=False, q_min=0, q_max=3, step=0.1):
             lci = np.maximum(richness, lci)
             uci = np.minimum(richness, uci)
             
-            plt.plot(q, lci, c=c, linewidth=.8)
-            plt.plot(q, uci, c=c, linewidth=.8)
-            plt.fill_between(q, lci, uci, color=c, alpha=0.3)
+            ax.plot(q, lci, c=f"C{i}", linewidth=.8)
+            ax.plot(q, uci, c=f"C{i}", linewidth=.8)
+            ax.fill_between(q, lci, uci, color=f"C{i}", alpha=0.3)
     
-    plt.xlabel('Diversity order ($q$)', fontsize=16)
-    plt.ylabel('Evenness: $({}^qD - 1) / (\hat{S} - 1)$', fontsize=16)
-    plt.title('Evenness profile', fontsize=20)
-    plt.legend(fontsize=14)
+    ax.xlabel('Diversity order ($q$)', fontsize=16)
+    ax.ylabel(r'Evenness: $({}^qD - 1) / (\hat{S} - 1)$', fontsize=16)
+    ax.title('Evenness profile', fontsize=20)
+    ax.legend(fontsize=14)
+
+    return ax
