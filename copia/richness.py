@@ -120,7 +120,7 @@ def iChao1(x):
     f4 = np.count_nonzero(x == 4)
 
     if f4 == 0:
-        warnings.warn('Add-one smoothing for f4 = 0', UserWarning)
+        warnings.warn("Add-one smoothing for f4 = 0", UserWarning)
         f4 += 1
 
     iCh1 = ch1 + (f3 / (4 * f4)) * np.max((f1 - ((f2 * f3) / (2 * f4)), 0))
@@ -177,7 +177,7 @@ def egghe_proot(x, alpha=150):
     P2 = np.count_nonzero(x == 2)
 
     if P2 == 0:
-        warnings.warn('Add-one smoothing for P2 = 0', UserWarning)
+        warnings.warn("Add-one smoothing for P2 = 0", UserWarning)
         P2 += 1
 
     P0 = (1 / (1 + (2 / (alpha - 1)) * (P2 / P1))) ** alpha
@@ -439,7 +439,8 @@ estimators = {
 }
 
 
-def diversity(x, method=None, CI=False, conf=0.95, **kwargs):
+def diversity(
+    x, method=None, CI=False, conf=0.95, n_iter=1000, n_jobs=1, seed=None, **kwargs):
     """
     Wrapper for various bias-corrected richness functions
 
@@ -465,11 +466,11 @@ def diversity(x, method=None, CI=False, conf=0.95, **kwargs):
     x = np.array(x, dtype=np.int64)
 
     if (x < 0).any():
-        msg = 'Elements of `x` should be strictly non-negative'
+        msg = "Elements of `x` should be strictly non-negative"
         raise ValueError(msg)
 
     if x.sum() <= 0:
-        msg = '`x` appears to be empty'
+        msg = "`x` appears to be empty"
         raise ValueError(msg)
 
     if method is not None and method.lower() not in estimators:
@@ -479,7 +480,9 @@ def diversity(x, method=None, CI=False, conf=0.95, **kwargs):
         method = "empirical"
 
     if CI:
-        estimate = bootstrap(x, fn=estimators[method.lower()])
+        estimate = bootstrap(
+            x, fn=estimators[method.lower()], n_iter=n_iter, n_jobs=n_jobs, seed=seed
+        )
     else:
         estimate = estimators[method.lower()](x, **kwargs)
 
