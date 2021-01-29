@@ -183,13 +183,15 @@ def survival(assemblages, method='chao1', ax=None, figsize=(16, 8)):
     return pd.DataFrame(survival_estimates,
                         columns=['label', 'survival', 'lCI', 'uCI'])
 
-def survival_error(df):
+def survival_error(df, ax=None, figsize=(12, 4)):
     estimates = df.sort_values('survival')
     errors = np.array(list(zip(estimates['lCI'], estimates['uCI']))).T
     errors[0] = estimates['survival'] - errors[0]
     errors[1] -=  estimates['survival']
 
-    fig, ax = plt.subplots(figsize=(12, 4))
+    if ax is None:
+        fig, ax = plt.subplots(figsize=figsize)
+
     ax.errorbar(np.arange(len(estimates)),
             estimates['survival'],
             yerr=errors,
@@ -198,9 +200,10 @@ def survival_error(df):
             label='diversity',
             ms=12)
     
-    plt.ylabel('Estimated survival ratio')
+    ax.set_ylabel('Estimated survival ratio')
     ax.set_xticks(np.arange(len(estimates)))
     ax.set_xticklabels(estimates['label'], fontsize=12)
+    return ax
 
 
 def species_accumulation_curve(x, max_steps=None, incl_minsample=False):
