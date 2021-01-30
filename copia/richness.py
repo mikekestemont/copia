@@ -3,6 +3,7 @@
 Bias-correcting richness estimators for abundance data
 """
 import warnings
+from functools import partial
 
 import numpy as np
 import scipy.stats
@@ -518,7 +519,8 @@ def diversity(
 
     if CI:
         estimate = bootstrap(
-            x, fn=ESTIMATORS[method], n_iter=n_iter, n_jobs=n_jobs, seed=seed
+            x, fn=partial(ESTIMATORS[method], **kwargs),
+            n_iter=n_iter, n_jobs=n_jobs, seed=seed
         )
     else:
         estimate = ESTIMATORS[method](x, **kwargs)

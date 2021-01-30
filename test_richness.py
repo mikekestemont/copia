@@ -27,6 +27,11 @@ def test_egghe_proot():
     x = np.array([1, 1, 1, 2, 3, 5, 10, 25, 0, 0])
     assert np.isclose(diversity.egghe_proot(x, alpha=150), 16.38, rtol=0.001)
 
+    # test kwargs:
+    x = np.array([1, 1, 1, 2, 3, 5, 10, 25])
+    assert diversity.diversity(x, 'egghe_proot', alpha=150) != \
+           diversity.diversity(x, 'egghe_proot', alpha=50)
+
 
 def test_nonnegative_counts():
     x = np.array([1, 1, 1, 2, 3, 5, 10, 25, 0, -1])
