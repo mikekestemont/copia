@@ -41,7 +41,7 @@ def bootstrap(x, fn,
               n_jobs: int = 1,
               seed=None):
     rnd = check_random_state(seed)
-    pro = fn(x)
+    pro = fn(x) 
     p, n = bt_prob(x), x.sum()
     data_bt = rnd.multinomial(n, p, n_iter)
     

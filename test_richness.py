@@ -127,11 +127,3 @@ def test_moths():
                                      diagnostics=True)
         print(d)
         assert np.isclose(d['n'] * d['x*'], 166509, rtol=1)
-
-
-
-    
-
-    
-
-

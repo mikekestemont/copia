@@ -53,7 +53,7 @@ def check_random_state(seed):
         return np.random.mtrand._rand
     if seed is None:
         return np.random.RandomState()
-    if isinstance(seed, numbers.Integral):
+    if isinstance(seed, int):
         return np.random.RandomState(seed)
     if isinstance(seed, np.random.RandomState):
         return seed
