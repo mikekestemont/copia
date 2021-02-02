@@ -137,55 +137,27 @@ def richness_density(d, empirical=None, normalize=False, title=None, ax=None, fi
     return ax
 
 
-def survival(assemblages, method='chao1', ax=None, figsize=(16, 8)):
+def survival_kde(assemblages, ax=None, figsize=(16, 8),
+                  xlim=(0, 1), ylabel='Survival ratio (KDE)',
+                  xlabel=None):
     if ax is None:
         fig, ax = plt.subplots(figsize=figsize)
 
-    survival_estimates = []
-    method = method.lower()
-
     for i, (label, assemblage) in enumerate(assemblages.items()):
-        d = bootstrap(assemblage, fn=ESTIMATORS[method])
-        
-        if method == 'minsample':
-            # normalize to proportions:
-            empirical = empirical_richness(assemblage, species=False)
-            surv_norm = 1 / (d['richness'] / empirical)
-            bt_norm = 1 / (d['bootstrap'] / empirical)
-            lci = 1 / (d['lci'] / empirical)
-            uci = 1 / (d['uci'] / empirical)
-        
-        else:
-            # normalize to proportions:
-            empirical = empirical_richness(assemblage, species=True)
-            surv_norm = empirical / d['richness']
-            bt_norm = empirical / d['bootstrap']
-            lci = empirical / d['lci']
-            uci = empirical / d['uci']
-
-        # plot and append:
-        survival_estimates.append((label, surv_norm, lci, uci))
-        sb.kdeplot(bt_norm, label=label, ax=ax, color=f"C{i}", shade=True)
-        ax.axvline(surv_norm, linewidth=2, color=f"C{i}")
-        #q_11, q_50, q_89 = quantile(bt_norm, [0.11, 0.5, 0.89], weights=None)
-        #plt.axvline(q_11, ls='--', color=color)
-        #plt.axvline(q_89, ls='--', color=color)
-        
-    if method == 'minsample':
-        ax.set(xlim=(0, 0.5), ylabel="Kernel density estimate (sightings)",
-               xlabel="Proportion of attested sightings")
-    else:
-        ax.set(xlim=(0, 1), ylabel="Kernel density estimate (species survival)",
-               xlabel="Percentage of surviving species")
+        sb.kdeplot(assemblage['bootstrap'], label=label,
+                   ax=ax, color=f"C{i}", shade=True)
+        ax.axvline(assemblage['survival'], linewidth=2, color=f"C{i}")
     
     ax.legend()
 
-    return pd.DataFrame(survival_estimates,
-                        columns=['label', 'survival', 'lCI', 'uCI'])
+    return ax
 
-def survival_error(df, ax=None, figsize=(12, 4)):
+
+def survival_errorbar(df, ax=None, figsize=(12, 4)):
+    estimates = []
+
     estimates = df.sort_values('survival')
-    errors = np.array(list(zip(estimates['lCI'], estimates['uCI']))).T
+    errors = np.array(list(zip(estimates['lci'], estimates['uci']))).T
     errors[0] = estimates['survival'] - errors[0]
     errors[1] -= estimates['survival']
 
