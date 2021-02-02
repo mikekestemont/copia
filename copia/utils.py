@@ -10,6 +10,8 @@ import scipy.stats as stats
 from scipy.special import gammaln
 import tqdm
 
+from .richness import diversity
+
 
 def to_abundance(species):
     return np.array(tuple(Counter(species).values()),
@@ -62,3 +64,30 @@ def check_random_state(seed):
     raise ValueError(
         "%r cannot be used to seed a numpy.random.RandomState" " instance" % seed
     )
+
+def survival_ratio(assemblage, method='chao1', **kwargs):
+    method = method.lower()
+    
+    d = diversity(assemblage, method=method, CI=True, **kwargs)
+    s = {}
+        
+    if method == 'minsample':
+        # normalize to proportions:
+        empirical = diversity(assemblage, method='empirical', species=False)
+        s['survival'] = 1 / (d['richness'] / empirical)
+        if 'bootstrap' in d:
+            s['bootstrap'] = 1 / (d['bootstrap'] / empirical)
+        s['lci'] = 1 / (d['lci'] / empirical)
+        s['uci'] = 1 / (d['uci'] / empirical)
+        
+    else:
+        # normalize to proportions:
+        empirical = diversity(assemblage, method='empirical', species=True)
+        s['survival'] = empirical / d['richness']
+        if 'bootstrap' in d:
+            s['survival_bootstrap'] = empirical / d['bootstrap']
+        s['lci'] = empirical / d['lci']
+        s['uci'] = empirical / d['uci']
+
+    return s
+
