@@ -243,7 +243,7 @@ def ace(x, k=10):
     return S
 
 
-def jackknife(x, k=5, return_order=False, return_ci=False, conf=0.95):
+def jackknife(x, k=5, return_order=False, CI=False, conf=0.95):
     """
     Jackknife estimate of bias-corrected species richness
 
@@ -256,7 +256,7 @@ def jackknife(x, k=5, return_order=False, return_ci=False, conf=0.95):
         Maximum number of orders to consider (0 < k >= 5).
     return_order : bool (default = False)
         Whether to return the selected order for the Jackknife
-    return_ci : bool (default = False)
+    CI : bool (default = False)
         Whether to return the confidence interval for the Jackknife
     conf : float (default = 0.95)
         Confidence level for the confidence interval (e.g. 0.95).
@@ -280,7 +280,7 @@ def jackknife(x, k=5, return_order=False, return_ci=False, conf=0.95):
         'lci': 127.80529442066658,
         'uci': 226.1947055793334}
 
-    Notes
+    Note
     -------
     This is a literal translation of the reference implementation in the
     [SPECIES package](https://github.com/jipingw/SPECIES/blob/master/R/jackknife.R).
@@ -347,11 +347,11 @@ def jackknife(x, k=5, return_order=False, return_ci=False, conf=0.95):
         sej = gene[k0, 1]
         order = k0
 
-    if return_order or return_ci:
+    if return_order or CI:
         d = {"richness": jackest}
         if return_order:
             d["order"] = order
-        if return_ci:
+        if CI:
             d["lci"] = jackest - coe * sej
             d["uci"] = jackest + coe * sej
         return d
@@ -395,7 +395,7 @@ def min_add_sample(x, solver="grid", search_space=(0, 100, 1e6),
         the estimated number of individuals in the original
         population.) We only implement the case g = 1.
 
-    Notes
+    Note
     -------
     If the "fsolve" solver fails, the function will automatically back
     off to the "grid". A user warning will be raised in this case.
@@ -494,6 +494,14 @@ def diversity(
             - 'empirical' (same as None)
     **kwargs : additional parameters passed to selected method
 
+    Note
+    ----
+    If `CI` is True, a bootstrap procedure will be called on the
+    specified method to compute the confidence intervals around
+    the central estimate etc. For the Jackknife procedure, the
+    CI is calculated analytically and no bootstrap values will
+    be included in the returned dict.
+
     Returns
     -------
     Consult the documentation of selected method.
@@ -517,11 +525,14 @@ def diversity(
 
     method = method.lower()
 
-    if CI:
+    if CI and method != 'jackknife':
         estimate = bootstrap(
             x, fn=partial(ESTIMATORS[method], **kwargs),
             n_iter=n_iter, n_jobs=n_jobs, seed=seed
         )
+    elif CI and method == 'jackknife':
+        estimate = ESTIMATORS[method](x, CI=CI,
+                                      conf=conf, **kwargs)
     else:
         estimate = ESTIMATORS[method](x, **kwargs)
 

@@ -206,7 +206,8 @@ def survival_error(df, ax=None, figsize=(12, 4)):
     return ax
 
 
-def species_accumulation_curve(x, max_steps=None, incl_minsample=False, ax=None, figsize=(16, 12), n_iter=100):
+def species_accumulation_curve(x, max_steps=None, incl_minsample=False,
+                               ax=None, figsize=(16, 12), n_iter=100):
     x = np.array(x, dtype=np.int)
 
     # min sample estimate to estimate max steps:
