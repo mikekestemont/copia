@@ -530,7 +530,7 @@ def diversity(
             x, fn=partial(ESTIMATORS[method], **kwargs),
             n_iter=n_iter, n_jobs=n_jobs, seed=seed
         )
-    if CI and method == 'jackknife':
+    elif CI and method == 'jackknife':
         estimate = ESTIMATORS[method](x, CI=CI,
                                       conf=conf, **kwargs)
     else:
