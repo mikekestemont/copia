@@ -10,7 +10,7 @@ import scipy.stats
 from scipy.optimize import fsolve
 import matplotlib.pyplot as plt
 
-from .stats import bootstrap, dbinom
+import copia.stats as stats
 
 
 def empirical_richness(x, species=True):
@@ -305,16 +305,16 @@ def jackknife(x, k=5, return_order=False, CI=False, conf=0.95):
         gene[i, 3] = total
         for j in range(1, i + 1):
             gene[i, 0] = (
-                gene[i, 0] + (-1) ** (j + 1) * 2 ** i * dbinom(j, i, 0.5) * n[j - 1, 1]
+                gene[i, 0] + (-1) ** (j + 1) * 2 ** i * stats.dbinom(j, i, 0.5) * n[j - 1, 1]
             )
-            gene[i, 3] = gene[i, 3] + (-1) ** (j + 1) * 2 ** i * dbinom(j, i, 0.5) * n[
+            gene[i, 3] = gene[i, 3] + (-1) ** (j + 1) * 2 ** i * stats.dbinom(j, i, 0.5) * n[
                 j - 1, 1
             ] * np.prod(np.arange(1, j + 1))
         gene[i, 1] = -gene[i, 0]
         for j in range(1, i + 1):
             gene[i, 1] = (
                 gene[i, 1]
-                + ((-1) ** (j + 1) * 2 ** i * dbinom(j, i, 0.5) + 1) ** 2 * n[j - 1, 1]
+                + ((-1) ** (j + 1) * 2 ** i * stats.dbinom(j, i, 0.5) + 1) ** 2 * n[j - 1, 1]
             )
         gene[i, 1] = np.sqrt(gene[i, 1] + n[i:, 1].sum())
 
@@ -323,8 +323,8 @@ def jackknife(x, k=5, return_order=False, CI=False, conf=0.95):
             gene[i - 1, 2] = -((gene[i, 0] - gene[i - 1, 0]) ** 2) / (total - 1)
             for j in range(1, i):
                 gene[i - 1, 2] = gene[i - 1, 2] + (
-                    (-1) ** (j + 1) * 2 ** (i) * dbinom(j, i, 0.5)
-                    - (-1) ** (j + 1) * 2 ** (i - 1) * dbinom(j, i - 1, 0.5)
+                    (-1) ** (j + 1) * 2 ** (i) * stats.dbinom(j, i, 0.5)
+                    - (-1) ** (j + 1) * 2 ** (i - 1) * stats.dbinom(j, i - 1, 0.5)
                 ) ** 2 * n[j - 1, 1] * total / (total - 1)
             gene[i - 1, 2] = np.sqrt(gene[i - 1, 2] + n[i - 1, 1] * total / (total - 1))
             gene[i - 1, 4] = (gene[i, 0] - gene[i - 1, 0]) / gene[i - 1, 2]
@@ -526,7 +526,7 @@ def diversity(
     method = method.lower()
 
     if CI and method != 'jackknife':
-        estimate = bootstrap(
+        estimate = stats.bootstrap(
             x, fn=partial(ESTIMATORS[method], **kwargs),
             n_iter=n_iter, n_jobs=n_jobs, seed=seed
         )

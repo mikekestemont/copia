@@ -8,7 +8,7 @@ import scipy.stats
 from scipy.special import gammaln
 from tqdm import tqdm
 
-from .utils import Parallel, check_random_state
+import copia.utils as utils
 
 
 def dbinom(x, size, prob):
@@ -40,12 +40,12 @@ def bootstrap(x, fn,
               conf: float = 0.95,
               n_jobs: int = 1,
               seed=None):
-    rnd = check_random_state(seed)
+    rnd = utils.check_random_state(seed)
     pro = fn(x) 
     p, n = bt_prob(x), x.sum()
     data_bt = rnd.multinomial(n, p, n_iter)
     
-    pool = Parallel(n_jobs, n_iter)
+    pool = utils.Parallel(n_jobs, n_iter)
     for row in data_bt:
         pool.apply_async(fn, args=(row,))
     pool.join()
