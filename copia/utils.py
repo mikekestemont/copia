@@ -64,6 +64,7 @@ def check_random_state(seed):
         "%r cannot be used to seed a numpy.random.RandomState" " instance" % seed
     )
 
+
 def survival_ratio(assemblage, method='chao1', **kwargs):
     method = method.lower()
     
@@ -84,9 +85,31 @@ def survival_ratio(assemblage, method='chao1', **kwargs):
         empirical = richness.diversity(assemblage, method='empirical', species=True)
         s['survival'] = empirical / d['richness']
         if 'bootstrap' in d:
-            s['survival_bootstrap'] = empirical / d['bootstrap']
+            s['bootstrap'] = empirical / d['bootstrap']
         s['lci'] = empirical / d['lci']
         s['uci'] = empirical / d['uci']
 
     return s
+
+
+def evenness(d):
+    evenness = (d['richness'] - 1) / (d['richness'][0] - 1)
+    return evenness
+
+    """
+    hack for the CI
+    lci, uci, richness = d['lci'], d['uci'], d['richness']
+    if incl_CI:
+            # experimental...
+            lci = (lci - 1) / (max(max(lci), lci[0]) - 1)
+            uci = (uci - 1) / (max(max(uci), uci[0]) - 1)
+
+            lci = np.maximum(richness, lci)
+            uci = np.minimum(richness, uci)
+            
+            ax.plot(q, lci, c=f"C{i}", linewidth=.8)
+            ax.plot(q, uci, c=f"C{i}", linewidth=.8)
+            ax.fill_between(q, lci, uci, color=f"C{i}", alpha=0.3)
+    """
+
 

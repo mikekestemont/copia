@@ -14,9 +14,8 @@ from scipy.optimize import curve_fit
 from scipy.stats import logser
 import pandas as pd
 
-
-from .stats import quantile, rarefaction_extrapolation, bootstrap
-from .richness import *
+import copia.stats as stats
+import copia.richness as richness
 
 
 def abundance_counts(x, ax=None, figsize=None):
@@ -90,28 +89,21 @@ def abundance_histogram(x, ax=None, figsize=None):
     return ax
 
 
-def richness_density(d, empirical=None, normalize=False, title=None, ax=None, figsize=(15, 15)):
-    if normalize and not empirical:
-        msg = """If normalize is  set to True, `empirical`
-                 richness must be provided."""
-        raise ValueError(msg)
-
+def density(d, empirical=None, title=None, ax=None, xlim=None,
+            xlabel=None, ylabel=None, figsize=None):
     if ax is None:
         fig, ax = plt.subplots(figsize=figsize)
 
-    if normalize:
-        d['bootstrap'] = empirical / d['bootstrap']
-
     sb.histplot(d['bootstrap'], kde=True, ax=ax)
 
-    q_11, q_50, q_89 = quantile(d['bootstrap'], [0.11, 0.5, 0.89], weights=None)
+    q_11, q_50, q_89 = stats.quantile(d['bootstrap'], [0.11, 0.5, 0.89], weights=None)
     q_m, q_p = q_50 - q_11, q_89 - q_50
 
     ax.axvline(q_50, color='red')
     ax.axvline(q_11, ls='--', color='red')
     ax.axvline(q_89, ls='--', color='red')
 
-    if not normalize and empirical:
+    if empirical:
         ax.axvline(empirical, ls='--', color='green', linewidth=2)
 
     # Format the quantile display.
@@ -121,25 +113,20 @@ def richness_density(d, empirical=None, normalize=False, title=None, ax=None, fi
     textstr = 'Estimate: ' + textstr
 
     ax.annotate(textstr, xy=(0.5, 0.7), xycoords='axes fraction',
-                va='center_baseline', backgroundcolor='white', 
-                fontsize=12)
-    
-    if normalize:
-        ax.set_xlim([0, 1])
-
+                va='center_baseline', backgroundcolor='white')
 
     ax.set(
-        xlabel="Richness" if not survival else "Survival ratio",
-        ylabel="Kernel density",
+        xlim=xlim,
+        xlabel=xlabel,
+        ylabel=ylabel,
         title = "Estimate: bootstrap values (KDE and CI)" if not title else title
     )
 
     return ax
 
 
-def survival_kde(assemblages, ax=None, figsize=(16, 8),
-                  xlim=(0, 1), ylabel='Survival ratio (KDE)',
-                  xlabel=None):
+def multi_kde(assemblages, ax=None, figsize=(16, 8),
+                  xlim=(0, 1), ylabel=None, xlabel=None):
     if ax is None:
         fig, ax = plt.subplots(figsize=figsize)
 
@@ -148,15 +135,21 @@ def survival_kde(assemblages, ax=None, figsize=(16, 8),
                    ax=ax, color=f"C{i}", shade=True)
         ax.axvline(assemblage['survival'], linewidth=2, color=f"C{i}")
     
+    ax.set_xlim(xlim)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
     ax.legend()
 
     return ax
 
 
-def survival_errorbar(df, ax=None, figsize=(12, 4)):
+def survival_errorbar(survival, ax=None, figsize=None, xlabel=None,
+                      ylabel='label'):
     estimates = []
-
-    estimates = df.sort_values('survival')
+    for l in survival:
+        estimates.append([l] + [survival[l][k] for k in ['survival', 'lci', 'uci']])
+    estimates = pd.DataFrame(estimates, columns=[ylabel, 'survival', 'lci', 'uci'])
+    estimates = estimates.sort_values('survival')
     errors = np.array(list(zip(estimates['lci'], estimates['uci']))).T
     errors[0] = estimates['survival'] - errors[0]
     errors[1] -= estimates['survival']
@@ -172,20 +165,22 @@ def survival_errorbar(df, ax=None, figsize=(12, 4)):
             label='diversity',
             ms=12)
     
-    ax.set_ylabel('Estimated survival ratio')
+    ax.set_ylabel(ylabel)
+    ax.set_ylabel(xlabel)
     ax.set_xticks(np.arange(len(estimates)))
-    ax.set_xticklabels(estimates['label'], fontsize=12)
+    ax.set_xticklabels(estimates[ylabel])
+
     return ax
 
 
 def species_accumulation_curve(x, max_steps=None, incl_minsample=False,
-                               ax=None, figsize=(16, 12), n_iter=100):
+                               ax=None, figsize=None, n_iter=100):
     x = np.array(x, dtype=np.int)
 
     # min sample estimate to estimate max steps:
-    minsample_est = diversity(x, method='minsample', 
+    minsample_est = richness.diversity(x, method='minsample', 
                               solver='fsolve', CI=True)
-    q_11, q_50, q_89 = quantile(minsample_est['bootstrap'],
+    q_11, q_50, q_89 = stats.quantile(minsample_est['bootstrap'],
                                [0.11, 0.5, 0.89], weights=None)
     
     if max_steps is None:
@@ -197,7 +192,7 @@ def species_accumulation_curve(x, max_steps=None, incl_minsample=False,
     steps = np.arange(1, max_steps)
     interpolated = np.arange(1, max_steps) < x.sum()
 
-    estim = bootstrap(x, fn=partial(rarefaction_extrapolation,
+    estim = stats.bootstrap(x, fn=partial(stats.rarefaction_extrapolation,
                                     max_steps=max_steps),
                       n_iter=n_iter)
     
@@ -296,33 +291,18 @@ def hill_plot(emp, est, q_min=0, q_max=3, step=0.1,
     return ax
 
 
-def evenness_plot(assemblages, incl_CI=False, q_min=0, q_max=3, step=0.1, ax=None, figsize=(14, 14)):
+def evenness_plot(evennesses, q_min=0, q_max=3, step=0.1, ax=None, figsize=None):
     if ax is None:
         fig, ax = plt.subplots(figsize=figsize)
     
     q = np.arange(q_min, q_max + step, step)
 
-    for i, (label, d) in enumerate(assemblages.items()):
-        lci, uci, richness = d['lci'], d['uci'], d['richness']
-        
-        richness = (richness - 1) / (richness[0] - 1)
-        ax.plot(q, richness, label=label, c=f"C{i}", linewidth=2)
-
-        if incl_CI:
-            # experimental...
-            lci = (lci - 1) / (max(max(lci), lci[0]) - 1)
-            uci = (uci - 1) / (max(max(uci), uci[0]) - 1)
-
-            lci = np.maximum(richness, lci)
-            uci = np.minimum(richness, uci)
-            
-            ax.plot(q, lci, c=f"C{i}", linewidth=.8)
-            ax.plot(q, uci, c=f"C{i}", linewidth=.8)
-            ax.fill_between(q, lci, uci, color=f"C{i}", alpha=0.3)
+    for i, (label, evenness) in enumerate(evennesses.items()):
+        ax.plot(q, evenness, label=label, c=f"C{i}", linewidth=2)
     
-    ax.set_xlabel('Diversity order ($q$)', fontsize=16)
-    ax.set_ylabel(r'Evenness: $({}^qD - 1) / (\hat{S} - 1)$', fontsize=16)
-    ax.set_title('Evenness profile', fontsize=20)
-    ax.legend(fontsize=14)
+    ax.set_xlabel('Diversity order ($q$)')
+    ax.set_ylabel(r'Evenness: $({}^qD - 1) / (\hat{S} - 1)$')
+    ax.set_title('Evenness profile')
+    ax.legend(loc='best')
 
     return ax
