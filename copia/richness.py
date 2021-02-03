@@ -383,7 +383,7 @@ def min_add_sample(x, solver="grid", search_space=(0, 100, 1e6),
     tolerance : float (default = 1e-2)
         Allowed divergence (from zero) in finding the intersection
         between h() and v()
-    diagnostics = bool (default = False)
+    diagnostics : bool (default = False)
             If True, a diagnostics dict is returned with the keys
             "richness", "x*", "n".
 
