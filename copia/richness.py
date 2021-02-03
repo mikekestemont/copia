@@ -171,7 +171,6 @@ def egghe_proot(x, alpha=150):
     - Q.L. Burrell, 'Some comments on "The estimation of lost multi-copy
       documents: A new type of informetrics theory" by Egghe and Proot',
       Journal of Informetrics (2008), 101–105.
-
     """
 
     ft = np.bincount(x)[1:]
