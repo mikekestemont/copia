@@ -27,6 +27,9 @@ def basic_stats(x):
 
 
 class Parallel:
+    r"""
+    Helper class for parallel execution.
+    """
     def __init__(self, n_workers, n_tasks):
         self.pool = mp.Pool(n_workers)
         self._results = []
@@ -50,6 +53,10 @@ class Parallel:
 
 
 def check_random_state(seed):
+    r"""
+    Helper class to manage stable random
+    number generators.
+    """
     if seed is np.random:
         return np.random.mtrand._rand
     if seed is None:
@@ -66,6 +73,41 @@ def check_random_state(seed):
 
 
 def survival_ratio(assemblage, method='chao1', **kwargs):
+    r"""
+    Calculates the "survival ratio" of an assemblage
+
+    Parameters
+    ----------
+    assemblage : 1D numpy array with shape (number of species)
+        An array representing the abundances (observed
+        counts) for each individual species.
+    method : str (default = "chao1")
+        The diversity estimator to apply (with CI set to true)
+    **kwargs : additional arguments passed to the estimator
+
+    Returns
+    -------
+    s : dict
+        In ecological terms, we calculate the survival ratio
+        to the sample completeness at order 0.
+        - For species diversity, this estimate can be obtained
+          as: :math:`S_{obs}/ \hat{S}`
+        - For minsample, we estimate the survival ratio as:
+          :math:`n / n + m`.
+
+        The returned dict `s` will have the following fields:
+            - "survival" (float) = the unbiased survival estimate
+            - "lci" (float) = lower confidence interval
+            - "uci" (float) = upper confidence interval
+            - "bootstrap" (1D np.array) = bootstrap values obtained
+              for the survival estimate.
+
+    References
+    ----------
+    - A. Chao, et al., 'Quantifying sample completeness and comparing
+      diversities among assemblages', Ecological research (2020),
+      292-314.
+    """
     method = method.lower()
     
     d = richness.diversity(assemblage, method=method, CI=True, **kwargs)
@@ -93,11 +135,56 @@ def survival_ratio(assemblage, method='chao1', **kwargs):
 
 
 def evenness(d):
+    r"""
+    Evenness: calculation of a (normalized) evenness profile
+
+    Parameters
+    ----------
+    d : dict
+        A `dict`, minimally containing a 'richness' key that
+        indexes (:math:`{}^qD`): a 1D np.array with the Hill number
+        profile for a certain range of orders (:math:`q`). This
+        array can represent an estimated (bias-corrected) or an
+        empirical (observed) Hill profile.
+
+    Returns
+    -------
+    evennesses : 1D np.array
+
+        The evenness profile calculated here is:
+
+        .. math::
+            ({}^qD - 1) / (\hat{S} - 1)
+
+        With:
+            - :math:`{}^qD` = the Hill number profile passed,
+            - :math:`\hat{S}` = the number of distinct species at
+              :math:`q=0` (here equated to the first value encountered
+              in (:math:`{}^qD`)).
+        
+        The resulting profile will be normalized (bounded to the range
+        [0, 1]), enabling a direct comparison between assemblages of 
+        different sizes.
+
+    Note
+    ----
+        The recommended usage of this function is to apply it to one of
+        the dicts returned by `copia.hill.hill_numbers()`.
+
+    References
+    ----------
+    - A. Chao and R. Carlo, 'Quantifying evenness and linking it to
+      diversity, beta diversity, and similarity', Ecology (2019),
+      e02852.
+    - A. Chao, et al., 'Quantifying sample completeness and comparing
+      diversities among assemblages', Ecological research (2020),
+      292-314.
+    """
     evenness = (d['richness'] - 1) / (d['richness'][0] - 1)
     return evenness
 
     """
-    # (questionable) hack for the CI:
+    # (questionable) hack to obtain a CI:
     lci, uci, richness = d['lci'], d['uci'], d['richness']
     if incl_CI:
             # experimental...
