@@ -74,7 +74,7 @@ def check_random_state(seed):
 
 def survival_ratio(assemblage, method='chao1', **kwargs):
     r"""
-    Calculates the "survival ratio" of an assemblage
+    Calculates the survival ratio of an assemblage
 
     Parameters
     ----------
@@ -88,25 +88,34 @@ def survival_ratio(assemblage, method='chao1', **kwargs):
     Returns
     -------
     s : dict
-        In ecological terms, we calculate the survival ratio
-        to the sample completeness at order 0.
-        - For species diversity, this estimate can be obtained
-          as: :math:`S_{obs}/ \hat{S}`
-        - For minsample, we estimate the survival ratio as:
-          :math:`n / n + m`.
-
         The returned dict `s` will have the following fields:
             - "survival" (float) = the unbiased survival estimate
             - "lci" (float) = lower confidence interval
             - "uci" (float) = upper confidence interval
             - "bootstrap" (1D np.array) = bootstrap values obtained
               for the survival estimate.
+        
+        In ecological terms, we calculate the survival ratio
+        as the sample completeness at order 0. For species
+        diversity, this estimate can be obtained as:
+        :math:`S_{obs}/ \hat{S}`. For minsample, we estimate
+        the survival ratio as: :math:`n / n + m`.
+
+        With:
+            - :math:`S_{obs}` = the observed diversity
+            - :math:`\hat{S}` = the bias-corrected diversity
+            - :math:`n` = the observed population size.
+            - :math:`m` = the estimated number of additional
+              samples required.
 
     References
     ----------
     - A. Chao, et al., 'Quantifying sample completeness and comparing
       diversities among assemblages', Ecological research (2020),
       292-314.
+    - M. Kestemont & F. Karsdorp, 'Estimating the Loss of Medieval
+      Literature with an Unseen Species Model from Ecodiversity',
+      Computational Humanities Research (2020), 44-55.
     """
     method = method.lower()
     
@@ -142,7 +151,7 @@ def evenness(d):
     ----------
     d : dict
         A `dict`, minimally containing a 'richness' key that
-        indexes (:math:`{}^qD`): a 1D np.array with the Hill number
+        indexes :math:`{}^qD`: a 1D np.array with the Hill number
         profile for a certain range of orders (:math:`q`). This
         array can represent an estimated (bias-corrected) or an
         empirical (observed) Hill profile.
@@ -157,10 +166,10 @@ def evenness(d):
             ({}^qD - 1) / (\hat{S} - 1)
 
         With:
-            - :math:`{}^qD` = the Hill number profile passed,
+            - :math:`{}^qD` = the Hill number profile passed
             - :math:`\hat{S}` = the number of distinct species at
               :math:`q=0` (here equated to the first value encountered
-              in (:math:`{}^qD`)).
+              in (:math:`{}^qD`))
         
         The resulting profile will be normalized (bounded to the range
         [0, 1]), enabling a direct comparison between assemblages of 
