@@ -8,7 +8,6 @@ from functools import partial
 import numpy as np
 import scipy.stats
 from scipy.optimize import fsolve
-import matplotlib.pyplot as plt
 
 import copia.stats as stats
 
@@ -383,8 +382,8 @@ def min_add_sample(x, solver="grid", search_space=(0, 100, 1e6),
         Allowed divergence (from zero) in finding the intersection
         between h() and v()
     diagnostics = bool (default = False)
-            If True, a diagnostic plot is produced for h() and v()and
-            a dict is returned with the keys "richness", "x*", "n"
+            If True, a diagnostics dict is returned with the keys
+            "richness", "x*", "n".
 
     Returns
     -------
@@ -454,16 +453,20 @@ def min_add_sample(x, solver="grid", search_space=(0, 100, 1e6),
     m = n * x_ast
 
     if diagnostics:
-        sp = np.linspace(x_ast - 1, x_ast + 1, 100)
-        plt.plot(sp, 2 * f1 * (1 + sp), label='$h(x)$')
-        plt.plot(sp, np.exp(sp * (2 * f2 / f1)), label='$v(x)$')
-        plt.axvline(x_ast, linestyle='--', c='grey')
-        plt.xlabel('$x$')
-        plt.ylabel('h(x) and v(x)')
-        plt.legend()
         return {'richness': n + m, 'x*': x_ast, 'n': n}
     else:
         return n + m
+
+def species_accumulation(x, max_steps, n_iter=100):
+    steps = np.arange(1, max_steps)
+    interpolated = np.arange(1, max_steps) < x.sum()
+
+    accumulation = stats.bootstrap(x, fn=partial(stats.rarefaction_extrapolation,
+                                    max_steps=max_steps),
+                            n_iter=n_iter)
+    accumulation['interpolated'] = interpolated
+    accumulation['steps'] = steps
+    return accumulation
 
 
 ESTIMATORS = {

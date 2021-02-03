@@ -16,6 +16,7 @@ import pandas as pd
 
 import copia.stats as stats
 import copia.richness as richness
+import copia.utils as utils
 
 
 def abundance_counts(x, ax=None, figsize=None):
@@ -173,56 +174,57 @@ def survival_errorbar(survival, ax=None, figsize=None, xlabel=None,
     return ax
 
 
-def species_accumulation_curve(x, max_steps=None, incl_minsample=False,
-                               ax=None, figsize=None, n_iter=100):
-    x = np.array(x, dtype=np.int)
-
-    # min sample estimate to estimate max steps:
-    minsample_est = richness.diversity(x, method='minsample', 
-                              solver='fsolve', CI=True)
-    q_11, q_50, q_89 = stats.quantile(minsample_est['bootstrap'],
-                               [0.11, 0.5, 0.89], weights=None)
+def accumulation_curve(x, accumulation, minsample=None,
+                       ax=None, figsize=None, **kwargs):
+    lci = accumulation['lci']
+    uci = accumulation['uci']
+    Dq = accumulation['richness']
+    steps = accumulation['steps']
+    interpolated = accumulation['interpolated']
     
-    if max_steps is None:
-        if incl_minsample:
-            max_steps = int(max(minsample_est['bootstrap']))
-        else:
-            max_steps = int(q_89)
-    
-    steps = np.arange(1, max_steps)
-    interpolated = np.arange(1, max_steps) < x.sum()
-
-    estim = stats.bootstrap(x, fn=partial(stats.rarefaction_extrapolation,
-                                    max_steps=max_steps),
-                      n_iter=n_iter)
-    
-    lci_pro = estim['lci']
-    uci_pro = estim['uci']
-    Dq = estim['richness']
-
     if ax is None:
         fig, ax = plt.subplots(figsize=figsize)
 
-    # species accumulation
+    # mark empirical situation:
     ax.plot(x.sum(), Dq[x.sum() - 1], 'o', markersize=8)
     ax.plot(steps[interpolated], Dq[interpolated], color='C0')
     ax.plot(steps[~interpolated], Dq[~interpolated], '--', color='C0')
-    ax.fill_between(steps, lci_pro, uci_pro, alpha=0.3)
+    ax.fill_between(steps, lci, uci, alpha=0.3)
 
-    # min sample:
-    if incl_minsample:
+    if minsample:
         ax2 = ax.twinx()
-        sb.kdeplot(minsample_est['bootstrap'], ax=ax2,
-                color='green', fill=True)
+        sb.kdeplot(minsample['bootstrap'], ax=ax2,
+                    color='green', fill=True)
 
-        ax.axvline(q_50, color='green')
-        ax.axvline(q_11, ls='--', color='green')
-        ax.axvline(q_89, ls='--', color='green')
+        ax.axvline(minsample['richness'], color='green')
 
         ax2.grid(None)
+        ax2.set(xlabel='Min. add. sample')
 
     # cosmetics etc.
-    ax.set(xlabel='sightings', ylabel='species', title='Species Accumulation Curve')
+    ax.set(**kwargs)
+    return ax
+
+def minsample_diagnostic_plot(x, diagnostics, max_x_ast=100, ax=None,
+                              figsize=None, **kwargs):
+    x_ast = diagnostics['x*']
+    sp = np.linspace(x_ast - 1, x_ast + 1, max_x_ast)
+
+    basics = utils.basic_stats(x)
+    f1 = basics['f1']
+    f2 = basics['f2']
+
+    if ax is None:
+        fig, ax = plt.subplots(figsize=figsize)
+    
+    ax.plot(sp, 2 * f1 * (1 + sp), label='$h(x)$')
+    ax.plot(sp, np.exp(sp * (2 * f2 / f1)), label='$v(x)$')
+    ax.axvline(x_ast, linestyle='--', c='grey')
+    ax.set_xlabel('$x$')
+    ax.set_ylabel('h(x) and v(x)')
+    ax.legend()
+    
+    ax.set(**kwargs)
     return ax
 
 
