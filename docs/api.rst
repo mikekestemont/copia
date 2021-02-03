@@ -26,3 +26,9 @@ Visualization
 .. automodule:: copia.plot
     :members:
     :undoc-members:
+
+Utilities
+-----
+.. automodule:: copia.utils
+    :members:
+    :undoc-members:
