@@ -47,20 +47,21 @@ def chao1(x):
     Returns
     -------
     richness : float
-        Estimate ($\\hat{f_0}$) of the bias-corrected species richness:
+        Estimate (:math:`\hat{f_0}`) of the bias-corrected species richness:
 
-        $\\hat{f_0} = \\left\\{\begin{aligned}
-        \\frac{(n - 1)}{n} \\frac{f_1^2}{(2f_2)} \\qquad if f_2 > 0;\\
-        \\frac{(n - 1)}{n} \\frac{f_1(f_1 - 1)}{2} \\qquad if f_2 = 0
-        \\end{aligned}$
+        .. math::
+            \hat{f_0} = \left\{\begin{aligned}
+            \frac{(n - 1)}{n} \frac{f_1^2}{(2f_2)} \qquad \text{if } f_2 > 0;\\
+            \frac{(n - 1)}{n} \frac{f_1(f_1 - 1)}{2} \qquad \text{if } f_2 = 0
+            \end{aligned}\right.
 
         With:
-            - $f_1$ = the number of species sighted exactly once in
+            - :math:`f_1` = the number of species sighted exactly once in
               the sample (singletons),
-            - $f_2$ = the number of species that were sighted twice
+            - :math:`f_2` = the number of species that were sighted twice
               (doubletons)
-            - $n$ = the observed, total sample size.
-            - $\\hat{f_0}$ = the estimated lower bound for the number
+            - :math:`n` = the observed, total sample size.
+            - :math:`\hat{f_0}` = the estimated lower bound for the number
               of species that do exist in the assemblage, but which were
               sighted zero times, i.e. the number of undetected species.       
 
@@ -144,16 +145,17 @@ def egghe_proot(x, alpha=150):
     Returns
     -------
     richness : float
-        Estimate ($\\hat{f_0}$) of the bias-corrected species richness:
+        Estimate (:math:`\hat{f_0}`) of the bias-corrected species richness:
 
-        $\\hat{f_0} = \\left( \\frac{1}{1 + \\frac{2f_2}{(a-1)f_1}} \\right)^a$
+        .. math::
+           \hat{f_0} = \left( \frac{1}{1 + \frac{2f_2}{(a-1)f_1}} \right)^a
 
         With:
-            - $f_1$ = the number of species sighted exactly once in
+            - :math:`f_1` = the number of species sighted exactly once in
               the sample (singletons),
-            - $f_2$ = the number of species that were sighted twice
+            - :math:`f_2` = the number of species that were sighted twice
               (doubletons)
-            - $\\hat{f_0}$ = the estimated number of species that once
+            - :math:`\hat{f_0}` = the estimated number of species that once
               existed in the assemblage, but which were sighted zero times,
               i.e. the number of undetected species.
 
@@ -219,7 +221,7 @@ def ace(x, k=10):
     Returns
     -------
     richness : float
-        Estimate $\\hat{S}$ of the bias-corrected species richness.
+        Estimate :math:`\hat{S}` of the bias-corrected species richness.
 
     References
     ----------
@@ -388,13 +390,13 @@ def min_add_sample(x, solver="grid", search_space=(0, 100, 1e6),
     Returns
     -------
     estimate : float
-        $n + m (= nx*)$
-        Observed $n$ + $m$, i.e. lower-bound estimate of the minimum
+        :math:`n + m (= nx*)`
+        Observed :math:`n + m`, i.e. lower-bound estimate of the minimum
         additional samples (observations) that would have to be taken
-        to observe each of the hypothesized species (i.e. $\hat{f_0}$) at
+        to observe each of the hypothesized species (i.e. :math:`\hat{f_0}`) at
         least once. (In some cases, this number can approximate
         the estimated number of individuals in the original
-        population.) We only implement the case g = 1.
+        population.) We only implement the case :math:`g = 1`.
 
     Note
     -------

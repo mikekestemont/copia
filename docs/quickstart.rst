@@ -6,3 +6,5 @@ First ensure you have installed Copia. After installation you can start using Co
 .. code:: python
 
     import copia
+
+ Add short tutorial...
