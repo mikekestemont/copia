@@ -15,6 +15,11 @@ Stats
     :members:
     :undoc-members:
 
+Hill
+-----
+.. automodule:: copia.hill
+    :members:
+    :undoc-members:
 
 Visualization
 -------------

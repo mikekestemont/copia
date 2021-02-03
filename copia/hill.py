@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Hill number calculations (including evenness)
+Hill number calculations (including evenness calculations)
 """
 from functools import partial
 
