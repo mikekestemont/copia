@@ -105,7 +105,7 @@ def iChao1(x):
     ----
         We follow the original paper's recommendation to add 1
         to f4, if there are no quadrupletons in the assemblage,
-        so that iChao1 is always obtainable.  A user warning will b
+        so that iChao1 is always obtainable. A user warning will be
         raised in this case.
 
     References
@@ -113,7 +113,6 @@ def iChao1(x):
     - C.-H. Chiu et al., 'An Improved Nonparametric Lower Bound of
       Species Richness via a Modified Good–Turing Frequency Formula',
       Biometrics (2014), 671–682.
-
     """
 
     ch1 = chao1(x)
