@@ -16,6 +16,7 @@ import pandas as pd
 
 import copia.stats as stats
 import copia.richness as richness
+import copia.utils as utils
 
 
 def abundance_counts(x, ax=None, figsize=None):
@@ -201,6 +202,28 @@ def accumulation_curve(x, accumulation, minsample=None,
         ax2.set(xlabel='Min. add. sample')
 
     # cosmetics etc.
+    ax.set(**kwargs)
+    return ax
+
+def minsample_diagnostic_plot(x, diagnostics, max_x_ast=100, ax=None,
+                              figsize=None, **kwargs):
+    x_ast = diagnostics['x*']
+    sp = np.linspace(x_ast - 1, x_ast + 1, max_x_ast)
+
+    basics = utils.basic_stats(x)
+    f1 = basics['f1']
+    f2 = basics['f2']
+
+    if ax is None:
+        fig, ax = plt.subplots(figsize=figsize)
+    
+    ax.plot(sp, 2 * f1 * (1 + sp), label='$h(x)$')
+    ax.plot(sp, np.exp(sp * (2 * f2 / f1)), label='$v(x)$')
+    ax.axvline(x_ast, linestyle='--', c='grey')
+    ax.set_xlabel('$x$')
+    ax.set_ylabel('h(x) and v(x)')
+    ax.legend()
+    
     ax.set(**kwargs)
     return ax
 

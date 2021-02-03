@@ -97,7 +97,7 @@ def evenness(d):
     return evenness
 
     """
-    hack for the CI
+    # (questionable) hack for the CI:
     lci, uci, richness = d['lci'], d['uci'], d['richness']
     if incl_CI:
             # experimental...
