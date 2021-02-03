@@ -463,6 +463,17 @@ def min_add_sample(x, solver="grid", search_space=(0, 100, 1e6),
     else:
         return n + m
 
+def species_accumulation(x, max_steps, n_iter=100):
+    steps = np.arange(1, max_steps)
+    interpolated = np.arange(1, max_steps) < x.sum()
+
+    accumulation = stats.bootstrap(x, fn=partial(stats.rarefaction_extrapolation,
+                                    max_steps=max_steps),
+                            n_iter=n_iter)
+    accumulation['interpolated'] = interpolated
+    accumulation['steps'] = steps
+    return accumulation
+
 
 ESTIMATORS = {
     "empirical": empirical_richness,
