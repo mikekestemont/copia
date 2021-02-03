@@ -14,7 +14,7 @@ import copia.stats as stats
 
 
 def empirical_richness(x, species=True):
-    """
+    r"""
     Empirical species richness of an assemblage
 
     Parameters
@@ -36,7 +36,7 @@ def empirical_richness(x, species=True):
 
 
 def chao1(x):
-    """
+    r"""
     Chao1 estimate of bias-corrected species richness
 
     Parameters
@@ -48,29 +48,29 @@ def chao1(x):
     Returns
     -------
     richness : float
-        Estimate ($\hat{f_0}$) of the bias-corrected species richness:
+        Estimate ($\\hat{f_0}$) of the bias-corrected species richness:
 
-        $\hat{f_0} = \left\{\begin{aligned}
-        \frac{(n - 1)}{n} \frac{f_1^2}{(2f_2)} \qquad if f_2 > 0;\\
-        \frac{(n - 1)}{n} \frac{f_1(f_1 - 1)}{2} \qquad if f_2 = 0
-        \end{aligned}$
+        $\\hat{f_0} = \\left\\{\begin{aligned}
+        \\frac{(n - 1)}{n} \\frac{f_1^2}{(2f_2)} \\qquad if f_2 > 0;\\
+        \\frac{(n - 1)}{n} \\frac{f_1(f_1 - 1)}{2} \\qquad if f_2 = 0
+        \\end{aligned}$
 
         With:
             - $f_1$ = the number of species sighted exactly once in
-            the sample (singletons),
+              the sample (singletons),
             - $f_2$ = the number of species that were sighted twice
-            (doubletons)
+              (doubletons)
             - $n$ = the observed, total sample size.
-            - $\hat{f_0}$ = the estimated lower bound for the number
-            of species that do exist in the assemblage, but which were
-            sighted zero times, i.e. the number of undetected species.       
+            - $\\hat{f_0}$ = the estimated lower bound for the number
+              of species that do exist in the assemblage, but which were
+              sighted zero times, i.e. the number of undetected species.       
 
     References
     ----------
     - A. Chao, 'Non-parametric estimation of the classes in a population',
-    Scandinavian Journal of Statistics (1984), 265-270.
+      Scandinavian Journal of Statistics (1984), 265-270.
     - A. Chao, et al., 'Quantifying sample completeness and comparing
-    diversities among assemblages', Ecological research (2020), 292-314.
+      diversities among assemblages', Ecological research (2020), 292-314.
     """
 
     x = x[x > 0]
@@ -86,7 +86,7 @@ def chao1(x):
 
 
 def iChao1(x):
-    """
+    r"""
     "Improved" iChao1 estimate of bias-corrected species richness
 
     Parameters
@@ -111,8 +111,9 @@ def iChao1(x):
     References
     -------
     - C.-H. Chiu et al., 'An Improved Nonparametric Lower Bound of
-    Species Richness via a Modified Good–Turing Frequency Formula',
-    Biometrics (2014), 671–682.
+      Species Richness via a Modified Good–Turing Frequency Formula',
+      Biometrics (2014), 671–682.
+
     """
 
     ch1 = chao1(x)
@@ -130,7 +131,7 @@ def iChao1(x):
 
 
 def egghe_proot(x, alpha=150):
-    """
+    r"""
     Egghe & Proot estimate of bias-corrected species richness
 
     Parameters
@@ -144,18 +145,18 @@ def egghe_proot(x, alpha=150):
     Returns
     -------
     richness : float
-        Estimate ($\hat{f_0}$) of the bias-corrected species richness:
+        Estimate ($\\hat{f_0}$) of the bias-corrected species richness:
 
-        $\hat{f_0} = \left( \frac{1}{1 + \frac{2f_2}{(a-1)f_1}} \right)^a$
+        $\\hat{f_0} = \\left( \\frac{1}{1 + \\frac{2f_2}{(a-1)f_1}} \\right)^a$
 
         With:
             - $f_1$ = the number of species sighted exactly once in
-            the sample (singletons),
+              the sample (singletons),
             - $f_2$ = the number of species that were sighted twice
-            (doubletons)
-            - $\hat{f_0}$ = the estimated number of species that once
-            existed in the assemblage, but which were sighted zero times,
-            i.e. the number of undetected species.
+              (doubletons)
+            - $\\hat{f_0}$ = the estimated number of species that once
+              existed in the assemblage, but which were sighted zero times,
+              i.e. the number of undetected species.
 
     Note
     ----
@@ -165,11 +166,12 @@ def egghe_proot(x, alpha=150):
     References
     ----------
     - L. Egghe and G. Proot, 'The estimation of the number of lost
-    multi-copy documents: A new type of informetrics theory', Journal
-    of Informetrics (2007), 257-268.
+      multi-copy documents: A new type of informetrics theory', Journal
+      of Informetrics (2007), 257-268.
     - Q.L. Burrell, 'Some comments on "The estimation of lost multi-copy
-    documents: A new type of informetrics theory" by Egghe and Proot',
-    Journal of Informetrics (2008), 101–105.
+      documents: A new type of informetrics theory" by Egghe and Proot',
+      Journal of Informetrics (2008), 101–105.
+
     """
 
     ft = np.bincount(x)[1:]
@@ -194,7 +196,7 @@ def egghe_proot(x, alpha=150):
 
 
 def ace(x, k=10):
-    """
+    r"""
     ACE estimate of bias-corrected species richness (Chao & Lee 1992)
 
     Parameters
@@ -210,26 +212,26 @@ def ace(x, k=10):
     Note
     ----
         - Regarding k, we follow the recommendation from the
-        "EstimateS" package and assume that the upper limit
-        for considering a species "rare" is 10 observations.
+          "EstimateS" package and assume that the upper limit
+          for considering a species "rare" is 10 observations.
         - Our implementation mirrors that in the "fossil" R
-        package (https://cran.r-project.org/web/packages/fossil).
+          package (https://cran.r-project.org/web/packages/fossil).
 
     Returns
     -------
     richness : float
-        Estimate $\hat{S}$ of the bias-corrected species richness.
+        Estimate $\\hat{S}$ of the bias-corrected species richness.
 
     References
     ----------
     - A. Chao & S.-M. Lee, 'Estimating the number of classes via
-    sample coverage'. Journal of the American Statistical Association
-    87 (1992), 210-217.
+      sample coverage'. Journal of the American Statistical Association
+      87 (1992), 210-217.
     - R.K. Colwell & J.E. Elsensohn, 'EstimateS turns 20: statistical
-    estimation of species richness and shared species from samples,
-    with non-parametric extrapolation', Ecography 37 (2014), 609–613.
+      estimation of species richness and shared species from samples,
+      with non-parametric extrapolation', Ecography 37 (2014), 609–613.
     - M.J. Vavrek, 'fossil: palaeoecological and palaeogeographical
-    analysis tools', Palaeontologia Electronica 14 (2011), 1T.
+      analysis tools', Palaeontologia Electronica 14 (2011), 1T.
     """
 
     nr = sum(x[x <= k])
@@ -244,7 +246,7 @@ def ace(x, k=10):
 
 
 def jackknife(x, k=5, return_order=False, CI=False, conf=0.95):
-    """
+    r"""
     Jackknife estimate of bias-corrected species richness
 
     Parameters
@@ -288,9 +290,9 @@ def jackknife(x, k=5, return_order=False, CI=False, conf=0.95):
     References
     -------
     - K.P. Burnham and W.S. Overton, 'Estimation of the size of a closed population
-    when capture probabilities vary among animals' Biometrika (1978), 625–633.
+      when capture probabilities vary among animals' Biometrika (1978), 625–633.
     - J.-P. Wang, 'SPECIES: An R Package for Species Richness Estimation',
-    Journal of Statistical Software (2011), 1-15.
+      Journal of Statistical Software (2011), 1-15.
     """
 
     k0, k = k, min(len(np.unique(x)) - 1, 10)
@@ -361,7 +363,7 @@ def jackknife(x, k=5, return_order=False, CI=False, conf=0.95):
 
 def min_add_sample(x, solver="grid", search_space=(0, 100, 1e6),
                    tolerance=1e-1, diagnostics=False):
-    """
+    r"""
     Observed population size added to the minimum additional sampling estimate
     (~ original population size)
 
@@ -403,10 +405,10 @@ def min_add_sample(x, solver="grid", search_space=(0, 100, 1e6),
     References
     ----------
     - A. Chao et al., 'Sufficient sampling for asymptotic minimum
-    species richness estimators', Ecology (2009), 1125-1133.
+      species richness estimators', Ecology (2009), 1125-1133.
     - M. Kestemont & F. Karsdorp, 'Estimating the Loss of Medieval
-    Literature with an Unseen Species Model from Ecodiversity',
-    Computational Humanities Research (2020), 44-55.
+      Literature with an Unseen Species Model from Ecodiversity',
+      Computational Humanities Research (2020), 44-55.
     """
 
     if solver not in ('grid', 'fsolve'):
@@ -477,7 +479,7 @@ ESTIMATORS = {
 
 def diversity(
     x, method=None, CI=False, conf=0.95, n_iter=1000, n_jobs=1, seed=None, **kwargs):
-    """
+    r"""
     Wrapper for various bias-corrected richness functions
 
     Parameters

@@ -33,6 +33,12 @@ Currently implemented diversity estimation methods
 
     installation
     quickstart
+
+.. toctree::
+    :maxdepth: 2
+    :caption: Documentation
+
+    api
     
 
 
