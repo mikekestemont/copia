@@ -91,6 +91,36 @@ def quantile(x, q, weights=None):
 
 
 def rarefaction_extrapolation(x, max_steps):
+    r"""
+    Species accumulation curve (calculation)
+
+    Parameters
+    ----------
+    x : 1D numpy array with shape (number of species)
+        An array representing the abundances (observed
+        counts) for each individual species.
+    max_steps : int
+        Maximum number of steps in the accumulation. Should
+        be a positive integer, but can be smaller (rarefaction)
+        or larger (extrapolation) than the empirical population
+        size (:math:`n`).
+
+    Returns
+    -------
+    accumulation : np.ndarray
+        Species accumulation curve as a 1D numpy array of shape
+        (max_steps, ). Contains the estimated richness of the
+        assemblage, for each step in the range [0, max_steps].
+
+    References
+    ----------
+    - N.J. Gotelli and R.K. Colwell, 'Estimating Species Richness',
+      Biological Diversity: Frontiers in Measurement and Assessment,
+      OUP (2011), 39-54.
+    - A. Chao, et al. 'Rarefaction and extrapolation with Hill numbers:
+      a framework for sampling and estimation in species diversity studies',
+      Ecological Monographs (2014), 84, 45–67.
+    """
     x, n = x[x > 0], x.sum()
     def _sub(m):
         if m <= n:
