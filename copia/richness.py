@@ -374,7 +374,7 @@ def min_add_sample(x, solver="grid", search_space=(0, 100, 1e6),
     solver : str (default = 'grid')
         Solver to find x* = the intersection between h() and v():
             - 'grid': hardcode grid search (slower, but recommended)
-            - 'fsolve': numpy optimization (faster, but less stable in practice)
+            - 'fsolve': scipy optimization (faster, but less stable in practice)
     search_space : 3-way tuple (default = (0, 100, 1e5))
         Search space to be used in the grid search:
             (start, end, number of samples)

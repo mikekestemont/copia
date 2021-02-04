@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Miscellaneous statistical subroutines, in particular for
-bootstrapping and rarefaction/extrapolition.
+bootstrapping and rarefaction/extrapolation.
 """
 import numpy as np
 import scipy.stats
