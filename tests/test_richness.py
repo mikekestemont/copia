@@ -32,6 +32,25 @@ def test_egghe_proot():
     assert diversity.diversity(x, 'egghe_proot', alpha=150) != \
            diversity.diversity(x, 'egghe_proot', alpha=50)
 
+    # test against example from paper (pp. 260ff):
+    assemblage = [f'{i}-1' for i in range(714)]
+    for i in range(82):
+        for j in range(2):
+            assemblage.append(f'{i}-2')
+    for i in range(3):
+        for j in range(4):
+            assemblage.append(f'{i}-3')
+    for i in range(4):
+        for j in range(3):
+            assemblage.append(f'{i}-4')
+    for i in range(1):
+        for j in range(5):
+            assemblage.append(f'{i}-5')
+            
+    x = u.to_abundance(assemblage)
+
+    assert np.isclose(diversity.egghe_proot(x, alpha=200), 3903, rtol=0.001)
+
 
 def test_nonnegative_counts():
     x = np.array([1, 1, 1, 2, 3, 5, 10, 25, 0, -1])
@@ -51,10 +70,40 @@ def test_egghe_proot_missing_p2():
         diversity.egghe_proot(x)
 
 
-def test_iChao4_f4():
+def test_iChao1():
     x = np.array([1, 1, 1, 6, 3, 3, 5, 5, 5, 5, 8])
     with pytest.warns(UserWarning):
         diversity.iChao1(x)
+    
+    # mimic "daytime beetle assemblage" from original paper
+    # from Janzen (1973a, 1973b); p. 678:
+    assemblage = [f'{i}-1' for i in range(59)]
+    for i in range(9):
+        for j in range(2):
+            assemblage.append(f'{i}-2')
+    for i in range(3):
+        for j in range(3):
+            assemblage.append(f'{i}-3')
+    for i in range(2):
+        for j in range(4):
+            assemblage.append(f'{i}-4')
+    for i in range(2):
+        for j in range(5):
+            assemblage.append(f'{i}-5')   
+    for i in range(2):
+        for j in range(6):
+            assemblage.append(f'{i}-6')
+    for i in range(1):
+        for j in range(11):
+            assemblage.append(f'{i}-11')
+            
+    x = u.to_abundance(assemblage)
+
+    # check whether the assemblage is correctly constructed:
+    counts = u.basic_stats(x)
+    assert counts['S'] == 78
+    assert counts['n'] == 127
+    assert np.isclose(diversity.iChao1(x), 290.9, rtol=0.01)
 
 
 def test_minsample():
@@ -147,3 +196,4 @@ def test_species_accumulation():
 
     a = accumul['uci']
     assert np.all(a[1:] >= a[:-1])
+
