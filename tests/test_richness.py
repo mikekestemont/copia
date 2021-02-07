@@ -132,3 +132,18 @@ def test_moths():
                                      diagnostics=True)
         print(d)
         assert np.isclose(d['n'] * d['x*'], 166509, rtol=1)
+
+def test_species_accumulation():
+    # verify whether species accumulation is stricly monotonic
+    spider_girdled = np.array([46, 22, 17, 15, 15, 9, 8, 6, 6, 4, 2, 2,
+                      2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], dtype=np.int64)
+    accumul = diversity.species_accumulation(spider_girdled, max_steps=300)
+
+    a = accumul['richness']
+    assert np.all(a[1:] >= a[:-1])
+
+    a = accumul['lci']
+    assert np.all(a[1:] >= a[:-1])
+
+    a = accumul['uci']
+    assert np.all(a[1:] >= a[:-1])
