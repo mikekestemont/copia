@@ -3,7 +3,9 @@ import warnings
 
 import numpy as np
 import copia.richness as diversity
+import copia.hill as hill
 import copia.utils as u
+
 
 
 def test_chao1():
@@ -196,4 +198,37 @@ def test_species_accumulation():
 
     a = accumul['uci']
     assert np.all(a[1:] >= a[:-1])
+
+def test_hill():
+    spider_girdled = [46, 22, 17, 15, 15, 9, 8, 6, 6, 4, 2, 2,
+                      2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+    x = np.array(spider_girdled)
+
+    emp, _ = hill.hill_numbers(x, n_iter=10, q_min=0, q_max=3, step=0.1)
+
+    q = np.arange(0, 3, 0.1)
+    # q = 0
+    idx = np.where(q == 0)[0][0]
+    q0 = emp['richness'][idx]
+    assert np.isclose(q0, len(x), rtol=0.001)
+
+    # q = 1
+    idx = np.where(q == 1)[0][0]
+    q1 = emp['richness'][idx]
+
+    def shannon_entropy(counts, base=np.e):
+        freqs = counts / counts.sum()
+        freqs = freqs[freqs.nonzero()]
+        return -(freqs * np.log(freqs)).sum() / np.log(base)
+
+    assert np.isclose(shannon_entropy(x), np.log(q1), rtol=0.001)
+
+    # q = 2
+    idx = np.where(q == 2)[0][0]
+    q2 = emp['richness'][idx]
+
+    def simpson_diversity(counts):
+        return 1 - ((counts / counts.sum()) ** 2).sum()
+
+    assert np.isclose(1 / (1 - simpson_diversity(x)), q2, rtol=0.1)
 
