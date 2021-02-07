@@ -19,7 +19,7 @@ import copia.richness as richness
 import copia.utils as utils
 
 
-def abundance_counts(x, ax=None, figsize=None):
+def abundance_counts(x, ax=None, figsize=None, trendline=False):
     if ax is None:
         fig, ax = plt.subplots(figsize=figsize)
 
@@ -40,20 +40,22 @@ def abundance_counts(x, ax=None, figsize=None):
     ax.annotate(textstr, xy=(0.75, 0.75), xycoords='axes fraction',
                  va='center', backgroundcolor='white')
 
-    def func(x, a, b, c):
-        return a * np.exp(-b * x) + c
+    if trendline:
+        def func(x, a, b, c):
+            return a * np.exp(-b * x) + c
+        
+        popt, _ = curve_fit(func, range(len(x)), x,
+            bounds=([-np.inf, 0.0001, -np.inf], [np.inf, 10, np.inf]))
+        ax2 = ax.twinx()
+        ax2.grid(None)
+        ax2.plot(range(len(x)), func(range(len(x)), *popt), 'r--', 
+                label='fit: a=%5.3f, b=%5.3f, c=%5.3f' % tuple(popt))
+        ax2.set(ylabel="Exponential fit", ylim=(1, max(x)))
     
-    popt, _ = curve_fit(func, range(len(x)), x,
-          bounds=([-np.inf, 0.0001, -np.inf], [np.inf, 10, np.inf]))
-    ax2 = ax.twinx()
-    ax2.grid(None)
-    ax2.plot(range(len(x)), func(range(len(x)), *popt), 'r--', 
-             label='fit: a=%5.3f, b=%5.3f, c=%5.3f' % tuple(popt))
-    ax2.set(ylabel="Exponential fit", ylim=(1, max(x)))
     return ax
 
 
-def abundance_histogram(x, ax=None, figsize=None):
+def abundance_histogram(x, ax=None, figsize=None, trendline=False):
     if ax is None:
         fig, ax = plt.subplots(figsize=figsize)
         
@@ -77,16 +79,18 @@ def abundance_histogram(x, ax=None, figsize=None):
     ax.annotate(textstr, xy=(0.7, 0.7), xycoords='axes fraction',
                 va='center', backgroundcolor='white')
     
-    # https://github.com/jkitzes/macroeco/blob/master/macroeco/models/_distributions.pys
-    mu = np.mean(x)
-    eq = lambda p, mu: -p/np.log(1-p)/(1-p) - mu
-    p = optim.brentq(eq, 1e-16, 1-1e-16, args=(mu), disp=True)
-    estims = logser.pmf(pos, p)
+    if trendline:
+        # https://github.com/jkitzes/macroeco/blob/master/macroeco/models/_distributions.pys
+        mu = np.mean(x)
+        eq = lambda p, mu: -p/np.log(1-p)/(1-p) - mu
+        p = optim.brentq(eq, 1e-16, 1-1e-16, args=(mu), disp=True)
+        estims = logser.pmf(pos, p)
 
-    ax2 = ax.twinx()
-    ax2.plot(pos, estims, 'r--')
-    ax2.grid(None)
-    ax2.set(ylabel="Fisher's log series (pmf)", ylim =(0, 1))
+        ax2 = ax.twinx()
+        ax2.plot(pos, estims, 'r--')
+        ax2.grid(None)
+        ax2.set(ylabel="Fisher's log series (pmf)", ylim =(0, 1))
+    
     return ax
 
 
