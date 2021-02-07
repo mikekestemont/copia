@@ -209,3 +209,6 @@ def evenness(d):
     """
 
 
+__all__ = ['to_abundance', 'basic_stats', 'Parallel',
+           'check_random_state', 'survival_ratio',
+           'evenness']

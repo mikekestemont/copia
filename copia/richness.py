@@ -542,3 +542,7 @@ def diversity(
         estimate = ESTIMATORS[method](x, **kwargs)
 
     return estimate
+
+__all__ = ['empirical_richness', 'chao1', 'iChao1', 'egghe_proot',
+           'ace', 'jackknife', 'min_add_sample', 'species_accumulation',
+           'diversity']

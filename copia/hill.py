@@ -109,3 +109,5 @@ def hill_numbers(x, q_min=0, q_max=3, step=0.1,
                     n_jobs=n_jobs,
                     seed=seed)
     return emp, est
+
+__all__ = ['estimated_hill', 'empirical_hill', 'hill_numbers']

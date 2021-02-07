@@ -312,3 +312,7 @@ def evenness_plot(evennesses, q_min=0, q_max=3, step=0.1, ax=None, figsize=None)
     ax.legend(loc='best')
 
     return ax
+
+__all__ = ['abundance_counts', 'abundance_histogram', 'density',
+           'multi_kde', 'survival_errorbar', 'accumulation_curve',
+           'minsample_diagnostic_plot', 'hill_plot', 'evenness_plot']
