@@ -20,6 +20,29 @@ import copia.utils as utils
 
 
 def abundance_counts(x, ax=None, figsize=None, trendline=False):
+    r"""
+    Plot per-species abundance in an assemblage, as a ranked bar plot
+
+    Parameters
+    ----------
+    x : 1D numpy array with shape (number of species)
+        An array representing the abundances (observed
+        counts) for each individual species.
+    ax : plt.Axes (default = None)
+        The ax to plot on or None if a new plt.Figure
+        is required.
+    figsize : 2-way tuple (default = None)
+        The size of the new plt.Figure to be plotted
+        (Ignored if an axis is passed.)
+    trendline : bool (default = False)
+        If True, an trendline (exponential) is fitted
+        and added to the barplot as a reading aid.
+    
+    Returns
+    -------
+    ax : plt.Axes
+        The resulting plot's (primary) axis.
+    """
     if ax is None:
         fig, ax = plt.subplots(figsize=figsize)
 
@@ -56,6 +79,36 @@ def abundance_counts(x, ax=None, figsize=None, trendline=False):
 
 
 def abundance_histogram(x, ax=None, figsize=None, trendline=False):
+    r"""
+    Plot an assemblage's frequency histogram as a bar plot
+
+    Parameters
+    ----------
+    x : 1D numpy array with shape (number of species)
+        An array representing the abundances (observed
+        counts) for each individual species.
+    ax : plt.Axes (default = None)
+        The ax to plot on or None if a new plt.Figure
+        is required.
+    figsize : 2-way tuple (default = None)
+        The size of the new plt.Figure to be plotted
+        (Ignored if an axis is passed.)
+    trendline : bool (default = False)
+        If True, a trendline (Fisher log-series) is
+        fitted and added to the barplot as a reading
+        aid.
+
+    Note
+    ----
+    The code for fitting the trendline is based on the
+    [macroeco package](https://github.com/jkitzes/macroeco/\
+    blob/master/macroeco/models/_distributions.py).
+    
+    Returns
+    -------
+    ax : plt.Axes
+        The resulting plot's (primary) axis.
+    """
     if ax is None:
         fig, ax = plt.subplots(figsize=figsize)
         
@@ -80,7 +133,7 @@ def abundance_histogram(x, ax=None, figsize=None, trendline=False):
                 va='center', backgroundcolor='white')
     
     if trendline:
-        # https://github.com/jkitzes/macroeco/blob/master/macroeco/models/_distributions.pys
+        # 
         mu = np.mean(x)
         eq = lambda p, mu: -p/np.log(1-p)/(1-p) - mu
         p = optim.brentq(eq, 1e-16, 1-1e-16, args=(mu), disp=True)
@@ -96,6 +149,39 @@ def abundance_histogram(x, ax=None, figsize=None, trendline=False):
 
 def density(d, empirical=None, title=None, ax=None, xlim=None,
             xlabel=None, ylabel=None, figsize=None):
+    r"""
+    Plot histogram and kernel density of a bootstrapped
+    richness estimate, with vertical lines for the quartiles
+    (q11, q50, q89) and an info box.
+
+    Parameters
+    ----------
+    d : dict
+        A dict resulting from a (bootstrapped) richness
+        estimate (see copia.richness)
+    empirical : int (default = None)
+        The empirical richness for the samples for which
+        the true richness has been annotated. Will be ad-
+        added as a vertical line to the plot if a value
+        is specified.
+    ax : plt.Axes (default = None)
+        The ax to plot on or None if a new plt.Figure
+        is required.
+    xlim : 2-way tuple (default = None)
+        The xlim for the main axis of the plot
+    xlabel : str (default = None)
+        The label for the primary x-axis in the plot
+    ylabel : str (default = None)
+        The label for the primary y-axis in the plot
+    figsize : 2-way tuple (default = None)
+        The size of the new plt.Figure to be plotted
+        (Ignored if an axis is passed.)
+    
+    Returns
+    -------
+    ax : plt.Axes
+        The resulting plot's (primary) axis.
+    """
     if ax is None:
         fig, ax = plt.subplots(figsize=figsize)
 
@@ -124,14 +210,43 @@ def density(d, empirical=None, title=None, ax=None, xlim=None,
         xlim=xlim,
         xlabel=xlabel,
         ylabel=ylabel,
-        title = "Estimate: bootstrap values (KDE and CI)" if not title else title
+        title = "Estimate: bootstrap values (KDE and quartiles)" if not title else title
     )
 
     return ax
 
 
-def multi_kde(assemblages, ax=None, figsize=(16, 8),
+def multi_kde(assemblages, ax=None, figsize=None,
                   xlim=(0, 1), ylabel=None, xlabel=None):
+    r"""
+    Takes a dict of survival estimates for labeled assem-
+    blages and plots the bootstrap value as kernel density
+    estimates. Point estimates are added as vertical lines.
+
+    Parameters
+    ----------
+    d : dict
+        An assemblage dict, with labels (keys) and survival
+        estimates for each assemblage (values) that come
+        from `copia.utils.survival_ratio()`.
+    ax : plt.Axes (default = None)
+        The ax to plot on or None if a new plt.Figure
+        is required.
+    xlim : 2-way tuple (default = (0, 1))
+        The xlim for the main axis of the plot
+    xlabel : str (default = None)
+        The label for the primary x-axis in the plot
+    ylabel : str (default = None)
+        The label for the primary y-axis in the plot
+    figsize : 2-way tuple (default = None)
+        The size of the new plt.Figure to be plotted
+        (Ignored if an axis is passed.)
+    
+    Returns
+    -------
+    ax : plt.Axes
+        The resulting plot's (primary) axis.
+    """
     if ax is None:
         fig, ax = plt.subplots(figsize=figsize)
 
@@ -150,6 +265,35 @@ def multi_kde(assemblages, ax=None, figsize=(16, 8),
 
 def survival_errorbar(survival, ax=None, figsize=None, xlabel=None,
                       ylabel='label'):
+    r"""
+    Takes a dict of survival estimates for labeled assem-
+    blages and plots the bootstrap value as error bars,
+    with whiskers for lower and upper CI.
+
+    Parameters
+    ----------
+    survival : dict
+        An assemblage dict, with labels (keys) and survival
+        estimates for each assemblage (values) that come
+        from `copia.utils.survival_ratio()`.
+    ax : plt.Axes (default = None)
+        The ax to plot on or None if a new plt.Figure
+        is required.
+    xlim : 2-way tuple (default = (0, 1))
+        The xlim for the main axis of the plot
+    xlabel : str (default = None)
+        The label for the primary x-axis in the plot
+    ylabel : str (default = None)
+        The label for the primary y-axis in the plot
+    figsize : 2-way tuple (default = None)
+        The size of the new plt.Figure to be plotted
+        (Ignored if an axis is passed.)
+    
+    Returns
+    -------
+    ax : plt.Axes
+        The resulting plot's (primary) axis.
+    """
     estimates = []
     for l in survival:
         estimates.append([l] + [survival[l][k] for k in ['survival', 'lci', 'uci']])
@@ -180,6 +324,40 @@ def survival_errorbar(survival, ax=None, figsize=None, xlabel=None,
 
 def accumulation_curve(x, accumulation, minsample=None,
                        ax=None, figsize=None, **kwargs):
+    r"""
+    Plots the species accumulation curve for an assemblage,
+    with the option of adding a kernel density plot for a
+    corresponding minimum additional sampling estimate.
+
+    Parameters
+    ----------
+    x : 1D numpy array with shape (number of species)
+        An array representing the abundances (observed
+        counts) for each individual species.
+    accumulation : dict
+        The species accumulation curve, obtained from
+        `copia.richness.species_accumulation()`.
+    minsample : dict (default = None)
+        The result of a call to copia.richness.min_add\
+        _sample(). If specified, a KDE for the bootstrap-
+        ped values will be included.
+    ax : plt.Axes (default = None)
+        The ax to plot on or None if a new plt.Figure
+        is required.
+    figsize : 2-way tuple (default = None)
+        The size of the new plt.Figure to be plotted
+        (Ignored if an axis is passed.)
+    
+    Note
+    ----
+    Any `**kwargs` will be passed to ax.set() to con-
+    trol figure aesthetics.
+    
+    Returns
+    -------
+    ax : plt.Axes
+        The resulting plot's (primary) axis.
+    """
     lci = accumulation['lci']
     uci = accumulation['uci']
     Dq = accumulation['richness']
@@ -211,6 +389,39 @@ def accumulation_curve(x, accumulation, minsample=None,
 
 def minsample_diagnostic_plot(x, diagnostics, max_x_ast=100, ax=None,
                               figsize=None, **kwargs):
+    r"""
+    A diagnostic plot showing the detected intersection
+    between v() and h() for checking whether the optimization
+    in `copia.richness.species_accumulation()` has converged.
+
+    Parameters
+    ----------
+    x : 1D numpy array with shape (number of species)
+        An array representing the abundances (observed
+        counts) for each individual species.
+    diagnostics : dict
+        The result of a call to copia.richness.min_add\
+        _sample(..., solver='grid', CI=False, diagnostics=True)
+    max_x_ast : int (default = 100)
+        Controls the spacing of the search space to
+        be visualized
+    ax : plt.Axes (default = None)
+        The ax to plot on or None if a new plt.Figure
+        is required.
+    figsize : 2-way tuple (default = None)
+        The size of the new plt.Figure to be plotted
+        (Ignored if an axis is passed.)
+    
+    Note
+    ----
+    Any `**kwargs` will be passed to ax.set() to con-
+    trol figure aesthetics.
+    
+    Returns
+    -------
+    ax : plt.Axes
+        The resulting plot's (primary) axis.
+    """
     x_ast = diagnostics['x*']
     sp = np.linspace(x_ast - 1, x_ast + 1, max_x_ast)
 
@@ -234,8 +445,49 @@ def minsample_diagnostic_plot(x, diagnostics, max_x_ast=100, ax=None,
 
 def hill_plot(emp, est, q_min=0, q_max=3, step=0.1,
               figsize=None, ax=None, add_densities=True,
-              title=None):
+              title=None, **kwargs):
+    r"""
+    Plots the Hill number profiles (with CI) for an
+    assemblage (both empirical and estimated), with
+    the option of adding kernel densitity estimates
+    for the main orders q in a separate subplot.
 
+    Parameters
+    ----------
+    emp : dict
+        The empirical Hill number profile, i.e. the
+        first dict returned by `copia.hill.hill_numbers()`.
+    est : dict
+        The estimated Hill number profile, i.e. the
+        second dict returned by `copia.hill.hill_numbers()`.
+    q_min : float (default = 0)
+        Minimum order to consider
+    q_max : float (default = 3)
+        Maximum order to consider
+    add_densities: bool (default = True)
+        If True, kernel densitity estimates for the main
+        orders q will be added in a separate subplot
+    step : float (default = 0.1)
+        Step size in between consecutive orders
+    title : str (default = None)
+        The main title for the figure
+    ax : plt.Axes (default = None)
+        The ax to plot on or None if a new plt.Figure
+        is required.
+    figsize : 2-way tuple (default = None)
+        The size of the new plt.Figure to be plotted
+        (Ignored if an axis is passed.)
+    
+    Note
+    ----
+    Any `**kwargs` will be passed to ax.set() to con-
+    trol figure aesthetics.
+    
+    Returns
+    -------
+    ax : plt.Axes
+        The resulting plot's (primary) axis.
+    """
     c_emp, c_est = 'C0', 'C1'
     q = np.arange(q_min, q_max + step, step)
 
@@ -293,11 +545,45 @@ def hill_plot(emp, est, q_min=0, q_max=3, step=0.1,
 
         ax2.set_xlabel('Hill numbers')
         ax2.set_ylabel('Density')
-
+    
+    ax.set(**kwargs)
     return ax
 
 
-def evenness_plot(evennesses, q_min=0, q_max=3, step=0.1, ax=None, figsize=None):
+def evenness_plot(evennesses, q_min=0, q_max=3, step=0.1, ax=None,
+                  figsize=None, **kwargs):
+    r"""
+    Plots evenness curves for a dictionary of assemblages
+
+    Parameters
+    ----------
+    evennesses : dict
+        An assemblage dict, with labels (keys) and evenness
+        profiles for each assemblage (values) that come
+        from `copia.utils.evenness()`.
+    q_min : float (default = 0)
+        Minimum order to consider
+    q_max : float (default = 3)
+        Maximum order to consider
+    step : float (default = 0.1)
+        Step size in between consecutive orders
+    ax : plt.Axes (default = None)
+        The ax to plot on or None if a new plt.Figure
+        is required.
+    figsize : 2-way tuple (default = None)
+        The size of the new plt.Figure to be plotted
+        (Ignored if an axis is passed.)
+    
+    Note
+    ----
+    Any `**kwargs` will be passed to ax.set() to con-
+    trol figure aesthetics.
+    
+    Returns
+    -------
+    ax : plt.Axes
+        The resulting plot's (primary) axis.
+    """
     if ax is None:
         fig, ax = plt.subplots(figsize=figsize)
     
@@ -311,6 +597,7 @@ def evenness_plot(evennesses, q_min=0, q_max=3, step=0.1, ax=None, figsize=None)
     ax.set_title('Evenness profile')
     ax.legend(loc='best')
 
+    ax.set(**kwargs)
     return ax
 
 __all__ = ['abundance_counts', 'abundance_histogram', 'density',
