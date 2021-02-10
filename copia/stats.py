@@ -39,11 +39,11 @@ def bt_prob(x):
     return p
 
 
-def bootstrap(x: np.ndarray, fn,
-              n_iter: int = 1000,
-              conf: float = 0.95,
-              n_jobs: int = 1,
-              seed: int = None):
+def bootstrap(x, fn,
+              n_iter=1000,
+              conf=0.95,
+              n_jobs=1,
+              seed=None):
     """Bootstrap method to construct confidence intervals of a specified 
     richness index.
 
@@ -57,6 +57,8 @@ def bootstrap(x: np.ndarray, fn,
         Number of bootstrap samples.
     conf : float (default = 0.95)
         Compute the confidence interval at the specified level.
+    n_jobs : int (default = 1)
+        Number of cores to use for computation.
     seed : int (default = None)
         A seed to initialize the random number generator. 
 
