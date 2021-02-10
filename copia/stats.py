@@ -3,7 +3,9 @@
 Miscellaneous statistical subroutines, in particular for
 bootstrapping and rarefaction/extrapolation.
 
-Functions based on the R code provided in http://chao.stat.nthu.edu.tw/wordpress/paper/113_Rcode.txt. 
+Functions based on the R code provided in 
+- http://chao.stat.nthu.edu.tw/wordpress/paper/113_Rcode.txt, and
+- https://github.com/AnneChao/SpadeR/blob/master/R/Diversity_subroutine.R
 """
 import numpy as np
 import scipy.stats
