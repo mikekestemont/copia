@@ -2,6 +2,8 @@
 """
 Miscellaneous statistical subroutines, in particular for
 bootstrapping and rarefaction/extrapolation.
+
+Functions based on the R code provided in http://chao.stat.nthu.edu.tw/wordpress/paper/113_Rcode.txt. 
 """
 import numpy as np
 import scipy.stats
@@ -35,11 +37,35 @@ def bt_prob(x):
     return p
 
 
-def bootstrap(x, fn,
+def bootstrap(x: np.ndarray, fn,
               n_iter: int = 1000,
               conf: float = 0.95,
               n_jobs: int = 1,
-              seed=None):
+              seed: int = None):
+    """Bootstrap method to construct confidence intervals of a specified 
+    richness index.
+
+    Parameters
+    ----------
+    x : 1D numpy array with shape (number of species)
+        An array representing the abundances (observed
+        counts) for each individual species.
+    fn : Callable representing the target richness index.
+    n_iter : int (default = 1000)
+        Number of bootstrap samples.
+    conf : float (default = 0.95)
+        Compute the confidence interval at the specified level.
+    seed : int (default = None)
+        A seed to initialize the random number generator. 
+
+    Returns
+    -------
+    estimates : dict
+        A dictionary providing the empirical richness index keyed with 
+        `richness`, the bootstrapped estimates `bootstrap`, the lower and 
+        upper endpoint of the specified confidence interval (`lci` and `uci`), 
+        and the standard deviation of the richness index. 
+    """
     rnd = utils.check_random_state(seed)
     pro = fn(x) 
     p, n = bt_prob(x), x.sum()
