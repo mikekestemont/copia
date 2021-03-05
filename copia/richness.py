@@ -481,7 +481,7 @@ ESTIMATORS = {
 
 
 def diversity(
-    x, method=None, CI=False, conf=0.95, n_iter=1000, n_jobs=1, seed=None, **kwargs):
+        x, method=None, CI=False, conf=0.95, n_iter=1000, n_jobs=1, seed=None, disable_pb=False, **kwargs):
     r"""
     Wrapper for various bias-corrected richness functions
 
@@ -533,7 +533,7 @@ def diversity(
     if CI and method != 'jackknife':
         estimate = stats.bootstrap(
             x, fn=partial(ESTIMATORS[method], **kwargs),
-            n_iter=n_iter, n_jobs=n_jobs, seed=seed
+            n_iter=n_iter, n_jobs=n_jobs, seed=seed, disable_pb=disable_pb
         )
     elif CI and method == 'jackknife':
         estimate = ESTIMATORS[method](x, CI=CI,

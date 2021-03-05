@@ -37,7 +37,7 @@ def abundance_counts(x, ax=None, figsize=None, trendline=False):
     trendline : bool (default = False)
         If True, an trendline (exponential) is fitted
         and added to the barplot as a reading aid.
-    
+
     Returns
     -------
     ax : plt.Axes
@@ -53,7 +53,7 @@ def abundance_counts(x, ax=None, figsize=None, trendline=False):
                    top=False, labelbottom=False)
     ax.set(xlabel='Species', ylabel='Number of sightings',
            title='Distribution of sightings over species')
-    
+
     textstr = '\n'.join((
         f'Species: {np.count_nonzero(x)}',
         f'Observations: {x.sum()}',
@@ -61,20 +61,21 @@ def abundance_counts(x, ax=None, figsize=None, trendline=False):
         f'$f_2$: {np.count_nonzero(x == 2)}',
         ))
     ax.annotate(textstr, xy=(0.75, 0.75), xycoords='axes fraction',
-                 va='center', backgroundcolor='white')
+                va='center', backgroundcolor='white')
 
     if trendline:
         def func(x, a, b, c):
             return a * np.exp(-b * x) + c
-        
-        popt, _ = curve_fit(func, range(len(x)), x,
+
+        popt, _ = curve_fit(
+            func, range(len(x)), x,
             bounds=([-np.inf, 0.0001, -np.inf], [np.inf, 10, np.inf]))
         ax2 = ax.twinx()
         ax2.grid(None)
-        ax2.plot(range(len(x)), func(range(len(x)), *popt), 'r--', 
-                label='fit: a=%5.3f, b=%5.3f, c=%5.3f' % tuple(popt))
+        ax2.plot(range(len(x)), func(range(len(x)), *popt), 'r--',
+                 label='fit: a=%5.3f, b=%5.3f, c=%5.3f' % tuple(popt))
         ax2.set(ylabel="Exponential fit", ylim=(1, max(x)))
-    
+
     return ax
 
 
@@ -103,7 +104,7 @@ def abundance_histogram(x, ax=None, figsize=None, trendline=False):
     The code for fitting the trendline is based on the
     [macroeco package](https://github.com/jkitzes/macroeco/\
     blob/master/macroeco/models/_distributions.py).
-    
+
     Returns
     -------
     ax : plt.Axes
@@ -111,14 +112,14 @@ def abundance_histogram(x, ax=None, figsize=None, trendline=False):
     """
     if ax is None:
         fig, ax = plt.subplots(figsize=figsize)
-        
+
     x = np.array(sorted(x, reverse=True))
 
     textstr = (f'Species: {np.count_nonzero(x)}\n'
                f'Observations: {x.sum()}\n'
                f'$f_1$: {np.count_nonzero(x == 1)}\n'
                f'$f_2$: {np.count_nonzero(x == 2)}')
-    
+
     counter = Counter(x)
     max_count = max(counter.keys())
     pos = [k for k in range(1, max_count + 1)]
@@ -128,12 +129,11 @@ def abundance_histogram(x, ax=None, figsize=None, trendline=False):
            color=next(ax._get_lines.prop_cycler)['color'])
 
     ax.set(xlabel='Species', title='Sightings histogram')
-    
+
     ax.annotate(textstr, xy=(0.7, 0.7), xycoords='axes fraction',
                 va='center', backgroundcolor='white')
-    
+
     if trendline:
-        # 
         mu = np.mean(x)
         eq = lambda p, mu: -p/np.log(1-p)/(1-p) - mu
         p = optim.brentq(eq, 1e-16, 1-1e-16, args=(mu), disp=True)
@@ -142,8 +142,8 @@ def abundance_histogram(x, ax=None, figsize=None, trendline=False):
         ax2 = ax.twinx()
         ax2.plot(pos, estims, 'r--')
         ax2.grid(None)
-        ax2.set(ylabel="Fisher's log series (pmf)", ylim =(0, 1))
-    
+        ax2.set(ylabel="Fisher's log series (pmf)", ylim=(0, 1))
+
     return ax
 
 
@@ -176,7 +176,7 @@ def density(d, empirical=None, title=None, ax=None, xlim=None,
     figsize : 2-way tuple (default = None)
         The size of the new plt.Figure to be plotted
         (Ignored if an axis is passed.)
-    
+
     Returns
     -------
     ax : plt.Axes
@@ -210,14 +210,14 @@ def density(d, empirical=None, title=None, ax=None, xlim=None,
         xlim=xlim,
         xlabel=xlabel,
         ylabel=ylabel,
-        title = "Estimate: bootstrap values (KDE and quartiles)" if not title else title
+        title="Estimate: bootstrap values (KDE and quartiles)" if not title else title
     )
 
     return ax
 
 
 def multi_kde(assemblages, ax=None, figsize=None,
-                  xlim=(0, 1), ylabel=None, xlabel=None):
+              xlim=(0, 1), ylabel=None, xlabel=None):
     r"""
     Takes a dict of survival estimates for labeled assem-
     blages and plots the bootstrap value as kernel density
@@ -241,7 +241,7 @@ def multi_kde(assemblages, ax=None, figsize=None,
     figsize : 2-way tuple (default = None)
         The size of the new plt.Figure to be plotted
         (Ignored if an axis is passed.)
-    
+
     Returns
     -------
     ax : plt.Axes
@@ -254,7 +254,7 @@ def multi_kde(assemblages, ax=None, figsize=None,
         sb.kdeplot(assemblage['bootstrap'], label=label,
                    ax=ax, color=f"C{i}", shade=True)
         ax.axvline(assemblage['survival'], linewidth=2, color=f"C{i}")
-    
+
     ax.set_xlim(xlim)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
@@ -288,7 +288,7 @@ def survival_errorbar(survival, ax=None, figsize=None, xlabel=None,
     figsize : 2-way tuple (default = None)
         The size of the new plt.Figure to be plotted
         (Ignored if an axis is passed.)
-    
+
     Returns
     -------
     ax : plt.Axes
@@ -306,14 +306,15 @@ def survival_errorbar(survival, ax=None, figsize=None, xlabel=None,
     if ax is None:
         fig, ax = plt.subplots(figsize=figsize)
 
-    ax.errorbar(np.arange(len(estimates)),
-            estimates['survival'],
-            yerr=errors,
-            fmt='.',
-            c='green',
-            label='diversity',
-            ms=12)
-    
+    ax.errorbar(
+        np.arange(len(estimates)),
+        estimates['survival'],
+        yerr=errors,
+        fmt='.',
+        c='green',
+        label='diversity',
+        ms=12)
+
     ax.set_ylabel(ylabel)
     ax.set_ylabel(xlabel)
     ax.set_xticks(np.arange(len(estimates)))
@@ -347,12 +348,12 @@ def accumulation_curve(x, accumulation, minsample=None,
     figsize : 2-way tuple (default = None)
         The size of the new plt.Figure to be plotted
         (Ignored if an axis is passed.)
-    
+
     Note
     ----
     Any `**kwargs` will be passed to ax.set() to con-
     trol figure aesthetics.
-    
+
     Returns
     -------
     ax : plt.Axes
@@ -363,7 +364,7 @@ def accumulation_curve(x, accumulation, minsample=None,
     Dq = accumulation['richness']
     steps = accumulation['steps']
     interpolated = accumulation['interpolated']
-    
+
     if ax is None:
         fig, ax = plt.subplots(figsize=figsize)
 
@@ -376,7 +377,7 @@ def accumulation_curve(x, accumulation, minsample=None,
     if minsample:
         ax2 = ax.twinx()
         sb.kdeplot(minsample['bootstrap'], ax=ax2,
-                    color='green', fill=True)
+                   color='green', fill=True)
 
         ax.axvline(minsample['richness'], color='green')
 
@@ -386,6 +387,7 @@ def accumulation_curve(x, accumulation, minsample=None,
     # cosmetics etc.
     ax.set(**kwargs)
     return ax
+
 
 def minsample_diagnostic_plot(x, diagnostics, max_x_ast=100, ax=None,
                               figsize=None, **kwargs):
@@ -411,12 +413,12 @@ def minsample_diagnostic_plot(x, diagnostics, max_x_ast=100, ax=None,
     figsize : 2-way tuple (default = None)
         The size of the new plt.Figure to be plotted
         (Ignored if an axis is passed.)
-    
+
     Note
     ----
     Any `**kwargs` will be passed to ax.set() to con-
     trol figure aesthetics.
-    
+
     Returns
     -------
     ax : plt.Axes
@@ -431,14 +433,14 @@ def minsample_diagnostic_plot(x, diagnostics, max_x_ast=100, ax=None,
 
     if ax is None:
         fig, ax = plt.subplots(figsize=figsize)
-    
+
     ax.plot(sp, 2 * f1 * (1 + sp), label='$h(x)$')
     ax.plot(sp, np.exp(sp * (2 * f2 / f1)), label='$v(x)$')
     ax.axvline(x_ast, linestyle='--', c='grey')
     ax.set_xlabel('$x$')
     ax.set_ylabel('h(x) and v(x)')
     ax.legend()
-    
+
     ax.set(**kwargs)
     return ax
 
@@ -477,12 +479,12 @@ def hill_plot(emp, est, q_min=0, q_max=3, step=0.1,
     figsize : 2-way tuple (default = None)
         The size of the new plt.Figure to be plotted
         (Ignored if an axis is passed.)
-    
+
     Note
     ----
     Any `**kwargs` will be passed to ax.set() to con-
     trol figure aesthetics.
-    
+
     Returns
     -------
     ax : plt.Axes
@@ -494,14 +496,14 @@ def hill_plot(emp, est, q_min=0, q_max=3, step=0.1,
     lci_emp, lci_est = emp['lci'], est['lci']
     uci_emp, uci_est = emp['uci'], est['uci']
     bt_emp, bt_est = emp['bootstrap'], est['bootstrap']
-    emp, est =  emp['richness'], est['richness']
+    emp, est = emp['richness'], est['richness']
 
     y_min = min(min(lci_emp), min(lci_est)) - 2
     y_max = max(max(uci_emp), max(uci_est)) + 2
 
     if ax is None:
         fig, ax = plt.subplots(figsize=figsize)
-    
+
     ax.plot(q, emp, color=c_emp, label='empirical')
     ax.plot(q, est, color=c_est, label='estimation')
 
@@ -528,7 +530,7 @@ def hill_plot(emp, est, q_min=0, q_max=3, step=0.1,
 
         for k, (i, label) in enumerate(zip(np.where(np.isin(q, (0, 1, 3)))[0], labels)):
             sb.kdeplot(bt_est[:, i], label=label, c=f"C{k}", ax=ax2)
-        
+
         l1, l2, l3 = ax2.lines
 
         # Get the xy data from the lines so that we can shade
@@ -545,7 +547,7 @@ def hill_plot(emp, est, q_min=0, q_max=3, step=0.1,
 
         ax2.set_xlabel('Hill numbers')
         ax2.set_ylabel('Density')
-    
+
     ax.set(**kwargs)
     return ax
 
@@ -573,12 +575,12 @@ def evenness_plot(evennesses, q_min=0, q_max=3, step=0.1, ax=None,
     figsize : 2-way tuple (default = None)
         The size of the new plt.Figure to be plotted
         (Ignored if an axis is passed.)
-    
+
     Note
     ----
     Any `**kwargs` will be passed to ax.set() to con-
     trol figure aesthetics.
-    
+
     Returns
     -------
     ax : plt.Axes
@@ -586,12 +588,12 @@ def evenness_plot(evennesses, q_min=0, q_max=3, step=0.1, ax=None,
     """
     if ax is None:
         fig, ax = plt.subplots(figsize=figsize)
-    
+
     q = np.arange(q_min, q_max + step, step)
 
     for i, (label, evenness) in enumerate(evennesses.items()):
         ax.plot(q, evenness, label=label, c=f"C{i}", linewidth=2)
-    
+
     ax.set_xlabel('Diversity order ($q$)')
     ax.set_ylabel(r'Evenness: $({}^qD - 1) / (\hat{S} - 1)$')
     ax.set_title('Evenness profile')
@@ -599,6 +601,7 @@ def evenness_plot(evennesses, q_min=0, q_max=3, step=0.1, ax=None,
 
     ax.set(**kwargs)
     return ax
+
 
 __all__ = ['abundance_counts', 'abundance_histogram', 'density',
            'multi_kde', 'survival_errorbar', 'accumulation_curve',
