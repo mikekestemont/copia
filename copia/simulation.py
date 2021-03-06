@@ -41,14 +41,10 @@ class WrightFisher:
         population[innovators] = np.arange(n_traits, n_traits + n_innovations)
         return population, n_traits + n_innovations
 
-## Two implementations of the same sampling procedure
+
 def simulate_collection(counts, k, beta):
     p = counts ** (1 - beta)
     items = [i for i, c in enumerate(counts) for _ in range(c)]
-    return np.bincount(heapq.nlargest(
-        k, items,  key=lambda item: math.log(random.random()) / p[item]))
-
-def simulate_collection_np(x, k, beta=0.0):
-    weights = x ** (1.0 - beta)
-    weights = np.repeat(weights, x)
-    return np.bincount(np.argsort(np.log(np.random.random(x.sum())) / weights)[-k:][::-1])
+    random.shuffle(items)
+    return np.bincount(heapq.nsmallest(
+        k, items,  key=lambda item: -math.log(random.random()) / (p[item] / counts[item])))
