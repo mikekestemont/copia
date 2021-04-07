@@ -1,4 +1,4 @@
-name: Copa Testing
+name: Copia Testing
 on: [push]
 jobs:
   build:
