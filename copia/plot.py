@@ -374,7 +374,7 @@ def accumulation_curve(x, accumulation, minsample=None,
         fig, ax = plt.subplots(figsize=figsize)
 
     # mark empirical situation:
-    ax.plot(x.sum(), Dq[x.sum() - 1], 'o', markersize=8)
+    ax.plot(x.sum(), Dq[x.sum() - 1], 'o', markersize=8, color=c0)
     ax.plot(steps[interpolated], Dq[interpolated], color=c0)
     ax.plot(steps[~interpolated], Dq[~interpolated], '--', color=c0)
     ax.fill_between(steps, lci, uci, alpha=0.3, color=c0)
