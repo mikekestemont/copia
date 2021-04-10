@@ -323,7 +323,8 @@ def survival_errorbar(survival, ax=None, figsize=None, xlabel=None,
 
 
 def accumulation_curve(x, accumulation, minsample=None,
-                       ax=None, figsize=None, **kwargs):
+                       ax=None, figsize=None, c0='C0',
+                       c1='C1', **kwargs):
     r"""
     Plots the species accumulation curve for an assemblage,
     with the option of adding a kernel density plot for a
@@ -344,6 +345,10 @@ def accumulation_curve(x, accumulation, minsample=None,
     ax : plt.Axes (default = None)
         The ax to plot on or None if a new plt.Figure
         is required.
+    c0 : str (default = "C0")
+        Color string for the species accumulation curve
+    c1 : str (default = "C1")
+        Color string for the minsample curve
     figsize : 2-way tuple (default = None)
         The size of the new plt.Figure to be plotted
         (Ignored if an axis is passed.)
@@ -369,16 +374,16 @@ def accumulation_curve(x, accumulation, minsample=None,
 
     # mark empirical situation:
     ax.plot(x.sum(), Dq[x.sum() - 1], 'o', markersize=8)
-    ax.plot(steps[interpolated], Dq[interpolated], color='C0')
-    ax.plot(steps[~interpolated], Dq[~interpolated], '--', color='C0')
-    ax.fill_between(steps, lci, uci, alpha=0.3)
+    ax.plot(steps[interpolated], Dq[interpolated], color=c0)
+    ax.plot(steps[~interpolated], Dq[~interpolated], '--', color=c0)
+    ax.fill_between(steps, lci, uci, alpha=0.3, color=c0)
 
     if minsample:
         ax2 = ax.twinx()
         sb.kdeplot(minsample['bootstrap'], ax=ax2,
-                    color='green', fill=True)
+                    color=c1, fill=True)
 
-        ax.axvline(minsample['richness'], color='green')
+        ax.axvline(minsample['richness'], color=c1)
 
         ax2.grid(None)
         ax2.set(xlabel='Min. add. sample')
