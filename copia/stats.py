@@ -43,6 +43,7 @@ def bootstrap(x, fn,
               n_iter=1000,
               conf=0.95,
               n_jobs=1,
+              disable_pb=False,
               seed=None):
     """Bootstrap method to construct confidence intervals of a specified 
     richness index.
@@ -75,7 +76,7 @@ def bootstrap(x, fn,
     p, n = bt_prob(x), x.sum()
     data_bt = rnd.multinomial(n, p, n_iter)
     
-    pool = utils.Parallel(n_jobs, n_iter)
+    pool = utils.Parallel(n_jobs, n_iter, disable_pb=disable_pb)
     for row in data_bt:
         pool.apply_async(fn, args=(row,))
     pool.join()

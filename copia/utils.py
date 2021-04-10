@@ -15,6 +15,10 @@ def to_abundance(species):
     return np.array(tuple(Counter(species).values()),
                     dtype=np.int)
 
+def bincount(x):
+    _, x = np.unique(x.flatten(), return_inverse=True)
+    return np.bincount(x)
+
 
 def basic_stats(x):
     assert isinstance(x, np.ndarray)
@@ -30,10 +34,10 @@ class Parallel:
     r"""
     Helper class for parallel execution.
     """
-    def __init__(self, n_workers, n_tasks):
+    def __init__(self, n_workers, n_tasks, disable_pb=False):
         self.pool = mp.Pool(n_workers)
         self._results = []
-        self._pb = tqdm.tqdm(total=n_tasks)
+        self._pb = tqdm.tqdm(total=n_tasks, disable=disable_pb)
 
     def apply_async(self, fn, args=None):
         self.pool.apply_async(fn, args=args, callback=self._completed)
@@ -211,4 +215,4 @@ def evenness(d):
 
 __all__ = ['to_abundance', 'basic_stats', 'Parallel',
            'check_random_state', 'survival_ratio',
-           'evenness']
+           'evenness', 'bincount']
