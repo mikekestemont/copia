@@ -132,8 +132,9 @@ def survival_ratio(assemblage, method='chao1', **kwargs):
         s['survival'] = 1 / (d['richness'] / empirical)
         if 'bootstrap' in d:
             s['bootstrap'] = 1 / (d['bootstrap'] / empirical)
-        s['lci'] = 1 / (d['lci'] / empirical)
-        s['uci'] = 1 / (d['uci'] / empirical)
+        # note: upper and lower CI have to be swapped
+        s['lci'] = 1 / (d['uci'] / empirical)
+        s['uci'] = 1 / (d['lci'] / empirical)
         
     else:
         # normalize to proportions:
@@ -141,8 +142,9 @@ def survival_ratio(assemblage, method='chao1', **kwargs):
         s['survival'] = empirical / d['richness']
         if 'bootstrap' in d:
             s['bootstrap'] = empirical / d['bootstrap']
-        s['lci'] = empirical / d['lci']
-        s['uci'] = empirical / d['uci']
+        # note: upper and lower CI have to be swapped
+        s['lci'] = empirical / d['uci']
+        s['uci'] = empirical / d['lci']
 
     return s
 
