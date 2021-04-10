@@ -429,7 +429,7 @@ def min_add_sample(x, solver="grid", search_space=(0, 100, 1e6),
         # check result
         diff_intersect = abs(h(x_ast) - v(x_ast))
         if diff_intersect > tolerance:
-            print('diff_intersect:', diff_intersect)
+            print('Diff_intersect:', diff_intersect)
             msg = f"Tolerance criterion not met via fsolve: {diff_intersect} > {tolerance}"
             msg += "-> backing off to grid-solver."
             warnings.warn(msg)
