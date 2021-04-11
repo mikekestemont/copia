@@ -261,7 +261,7 @@ def multi_kde(assemblages, ax=None, figsize=None,
 
 
 def survival_errorbar(survival, ax=None, figsize=None, xlabel=None,
-                      ylabel='label'):
+                      ylabel='label', sort_values=False):
     r"""
     Takes a dict of survival estimates for labeled assem-
     blages and plots the bootstrap value as error bars,
@@ -282,6 +282,8 @@ def survival_errorbar(survival, ax=None, figsize=None, xlabel=None,
         The label for the primary x-axis in the plot
     ylabel : str (default = None)
         The label for the primary y-axis in the plot
+    sort_values : bool (default = False)
+        Whether to sort the bars (ascendingly)
     figsize : 2-way tuple (default = None)
         The size of the new plt.Figure to be plotted
         (Ignored if an axis is passed.)
@@ -295,7 +297,8 @@ def survival_errorbar(survival, ax=None, figsize=None, xlabel=None,
     for l in survival:
         estimates.append([l] + [survival[l][k] for k in ['survival', 'lci', 'uci']])
     estimates = pd.DataFrame(estimates, columns=[ylabel, 'survival', 'lci', 'uci'])
-    estimates = estimates.sort_values('survival')
+    if sort_values:
+        estimates = estimates.sort_values('survival')
     errors = np.array(list(zip(estimates['lci'], estimates['uci']))).T
     errors[0] = estimates['survival'] - errors[0]
     errors[1] -= estimates['survival']
