@@ -148,7 +148,7 @@ def abundance_histogram(x, ax=None, figsize=None, trendline=False):
 
 
 def density(d, empirical=None, title=None, ax=None, xlim=None,
-            xlabel=None, ylabel=None, figsize=None):
+            xlabel=None, ylabel='Density (KDE)', figsize=None):
     r"""
     Plot histogram and kernel density of a bootstrapped
     richness estimate, with vertical lines for the quartiles
@@ -197,20 +197,17 @@ def density(d, empirical=None, title=None, ax=None, xlim=None,
     if empirical:
         ax.axvline(empirical, ls='--', color='green', linewidth=2)
 
-    # Format the quantile display.
+    # Format the quantile display:
     fmt = "{{0:{0}}}".format(".2f").format
     textstr = r"${{{0}}}_{{-{1}}}^{{+{2}}}$"
     textstr = textstr.format(fmt(q_50), fmt(q_m), fmt(q_p))
     textstr = 'Estimate: ' + textstr
 
-    ax.annotate(textstr, xy=(0.5, 0.7), xycoords='axes fraction',
-                va='center_baseline', backgroundcolor='white')
-
     ax.set(
         xlim=xlim,
         xlabel=xlabel,
         ylabel=ylabel,
-        title="Estimate: bootstrap values (KDE and quartiles)" if not title else title
+        title=textstr if not title else title
     )
 
     return ax
