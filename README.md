@@ -1,4 +1,4 @@
-<img width="699" alt="copia_logo" src="https://user-images.githubusercontent.com/4376879/115404130-5167a480-a1ed-11eb-96fe-46116ee5971f.png">
+<img width="300" style="float: right;" alt="Logo copia (goat's head)" src="https://user-images.githubusercontent.com/4376879/115404130-5167a480-a1ed-11eb-96fe-46116ee5971f.png">
 
 # copia
 Bias correction for richness in abundance data
