@@ -1,6 +1,12 @@
-<img width="699" alt="copia_logo" src="https://user-images.githubusercontent.com/4376879/115404130-5167a480-a1ed-11eb-96fe-46116ee5971f.png">
+<img width="250" align="right" alt="Logo copia (goat's head)" src="https://user-images.githubusercontent.com/4376879/115404130-5167a480-a1ed-11eb-96fe-46116ee5971f.png">
 
-# copia
+# Copia
+## Estimating the survival of cultural heritage artifacts with unseen species models from ecology
+
+Copia is a Python package that can be used for estimating the survival of artifacts from cultural heritage, based on established unseen species models from ecology.
+
+
+
 Bias correction for richness in abundance data
 
 For development, run 
