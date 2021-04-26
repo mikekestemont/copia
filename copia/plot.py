@@ -316,7 +316,7 @@ def survival_errorbar(survival, ax=None, figsize=None, xlabel=None,
         ms=12)
 
     ax.set_ylabel(ylabel)
-    ax.set_ylabel(xlabel)
+    ax.set_xlabel(xlabel)
     ax.set_xticks(np.arange(len(estimates)))
     ax.set_xticklabels(estimates[ylabel])
 
