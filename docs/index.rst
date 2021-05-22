@@ -6,7 +6,14 @@
 Copia - Bias correction for richness in abundance data
 ======================================================
 
+.. image:: _static/img/copia.png
+  :width: 200
+  :align: right
+  :alt: Copia Logo by Lauren Fonteyn
+
 .. include:: description.rst
+             
+.. include:: etymology.rst
 
 See :doc:`the quickstart <quickstart>` to get started.
 
@@ -45,7 +52,8 @@ Currently implemented diversity estimation methods
 Citation
 --------
 
-If you wish to cite Copia, please cite the following paper:
+Copia is developed by Mike Kestemont and Folgert Karsdorp. If you wish to cite Copia,
+please cite the following paper: 
 
 .. code-block:: console
 
