@@ -36,7 +36,8 @@ def empirical_richness(x, species=True):
 
 def chao1(x):
     r"""
-    Chao1 estimate of bias-corrected species richness
+    Chao1 estimate of bias-corrected species richness.
+    Formulas taken from Chao & Jost (2012), p. 2538.
 
     Parameters
     ----------
@@ -69,8 +70,9 @@ def chao1(x):
     ----------
     - A. Chao, 'Non-parametric estimation of the classes in a population',
       Scandinavian Journal of Statistics (1984), 265-270.
-    - A. Chao, et al., 'Quantifying sample completeness and comparing
-      diversities among assemblages', Ecological research (2020), 292-314.
+    - A. Chao & Jost, 'Coverage-based rarefaction and extrapolation:
+      standardizing samples by completeness rather than size', Ecology (2012),
+      2533–2547.
     """
 
     x = x[x > 0]
@@ -80,9 +82,9 @@ def chao1(x):
     f2 = np.count_nonzero(x == 2)
 
     if f2 > 0:
-        return t + (n - 1) / n * (f1 ** 2 / 2 / f2)
+        return t + (n-1)/n * (f1**2 / (2*f2))
     else:
-        return f1 * (f1 - 1) / 2
+        return t + (n-1)/n * f1*(f1-1) / 2*(f2+1)
 
 
 def iChao1(x):
