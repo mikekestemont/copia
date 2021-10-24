@@ -13,13 +13,32 @@ def test_chao1():
     assert np.isclose(diversity.chao1(x), 12.4, rtol=0.001)
 
     x = np.array([1, 1, 1, 2, 3, 5, 10, 25, 0, 0])
-    assert np.isclose(diversity.chao1(x), 12.4, rtol=0.001)    
+    assert np.isclose(diversity.chao1(x), 12.4, rtol=0.001)
 
     x = np.array([1, 1, 1, 1, 3, 5, 10, 25])
-    assert np.isclose(diversity.chao1(x), 6)
+    assert np.isclose(diversity.chao1(x), 13.8722, rtol=0.001)
 
-    x = np.array([1, 1, 1, 1, -1, 0, 10, 25])
-    assert np.isclose(diversity.chao1(x), 6)
+
+def test_chao1_f2():
+    """
+    Test chao1 implementation against SpadeR shiny-app,
+    spefically for the storm condition where f2 = 0, i.e.
+    no doubletons are available in the assemblage. See
+    https://chao.shinyapps.io/SpadeR/ <24 Oct 2021>
+
+    """
+    demo_default_data = np.array([752, 276, 194, 126, 121, 97,
+        95, 83, 72, 44, 39, 0, 16, 15, 0, 13, 9, 9,
+        9, 8, 7, 4, 0, 0, 2, 2, 1, 1, 1], dtype=np.int64)
+    assert np.isclose(diversity.chao1(demo_default_data),
+                      27.249, rtol=0.001)
+
+    # now remove doubletons:
+    demo_no_f2 = np.array([752, 276, 194, 126, 121, 97,
+        95, 83, 72, 44, 39, 0, 16, 15, 0, 13, 9, 9,
+        9, 8, 7, 4, 0, 0, 1, 1, 1], dtype=np.int64)
+    assert np.isclose(diversity.chao1(demo_no_f2),
+                      25.998, rtol=0.001)
 
     
 def test_egghe_proot():
@@ -184,6 +203,7 @@ def test_moths():
         print(d)
         assert np.isclose(d['n'] * d['x*'], 166509, rtol=1)
 
+
 def test_species_accumulation():
     # verify whether species accumulation is stricly monotonic
     spider_girdled = np.array([46, 22, 17, 15, 15, 9, 8, 6, 6, 4, 2, 2,
@@ -198,6 +218,7 @@ def test_species_accumulation():
 
     a = accumul['uci']
     assert np.all(a[1:] >= a[:-1])
+
 
 def test_hill():
     spider_girdled = [46, 22, 17, 15, 15, 9, 8, 6, 6, 4, 2, 2,
