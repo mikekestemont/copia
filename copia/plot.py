@@ -476,6 +476,7 @@ def hill_plot(emp, est, q_min=0, q_max=3, step=0.1,
     add_densities: bool (default = True)
         If True, kernel densitity estimates for the main
         orders q will be added in a separate subplot
+    
     title : str (default = None)
         The main title for the figure
     ax : plt.Axes (default = None)
