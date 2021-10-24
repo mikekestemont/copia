@@ -13,7 +13,7 @@ import copia.richness as richness
 
 def to_abundance(species):
     return np.array(tuple(Counter(species).values()),
-                    dtype=np.int)
+                    dtype=np.int64)
 
 def bincount(x):
     _, x = np.unique(x.flatten(), return_inverse=True)
