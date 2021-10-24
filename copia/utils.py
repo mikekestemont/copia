@@ -149,7 +149,7 @@ def survival_ratio(assemblage, method='chao1', **kwargs):
     return s
 
 
-def evenness(d):
+def evenness(d, q_min=0, q_max=3, step=0.1, CV=False):
     r"""
     Evenness: calculation of a (normalized) evenness profile
 
@@ -161,12 +161,23 @@ def evenness(d):
         profile for a certain range of orders (:math:`q`). This
         array can represent an estimated (bias-corrected) or an
         empirical (observed) Hill profile.
+    q_min : float (default = 0)
+        Minimum order to consider. Only relevant when CV is True.
+    q_max : float (default = 3)
+        Maximum order to consider. Only relevant when CV is True.
+    step : float (default = 0.1)
+        Step size in between consecutive orders. Only relevant
+        when CV is True.
+    CV : bool (default = False)
+        If this flag is set to `True`, another class of evenness
+        measures is being calculated, based on the coefficient of
+        variation or CV (see below).
 
     Returns
     -------
     evennesses : 1D np.array
 
-        The evenness profile calculated here is:
+        The (default) evenness profile calculated here is:
 
         .. math::
             ({}^qD - 1) / (\hat{S} - 1)
@@ -181,6 +192,19 @@ def evenness(d):
         [0, 1]), enabling a direct comparison between assemblages of 
         different sizes.
 
+        When `CV` is explicitly set to `True`, another class of evenness
+        measures is being calculated, based on the coefficient of
+        variation:
+
+        .. math::
+            {}^qE^* = [1-(^qD)^{1-q}] / (1-\hat{S}^{1-q})
+
+        When $q$ tends to 1, this reduces to the Shannon-entropy divided by
+        $log(S)$, which is known as Pielou’s $J'$ evenness index (Pielou
+        1966); for $q=2$, the corresponding evenness measure is:
+        $1 - (CV)^2/S$. 
+
+
     Note
     ----
         The recommended usage of this function is to apply it to one of
@@ -194,25 +218,18 @@ def evenness(d):
     - A. Chao, et al., 'Quantifying sample completeness and comparing
       diversities among assemblages', Ecological research (2020),
       292-314.
+    - E.C. Pielou, 'The measurement of diversity in different types
+      of biological collections. Journal of Theoretical Biology (1966),
+      131-144.
     """
-    evenness = (d['richness'] - 1) / (d['richness'][0] - 1)
+    if not CV:
+        evenness = (d['richness'] - 1) / (d['richness'][0] - 1)
+    else:
+        q = np.arange(q_min, q_max + step, step)
+        evenness = (1 - d['richness'] ** (1-q)) / \
+                   (1 - d['richness'][0] ** (1-q))
+
     return evenness
-
-    """
-    # (questionable) hack to obtain a CI:
-    lci, uci, richness = d['lci'], d['uci'], d['richness']
-    if incl_CI:
-            # experimental...
-            lci = (lci - 1) / (max(max(lci), lci[0]) - 1)
-            uci = (uci - 1) / (max(max(uci), uci[0]) - 1)
-
-            lci = np.maximum(richness, lci)
-            uci = np.minimum(richness, uci)
-            
-            ax.plot(q, lci, c=f"C{i}", linewidth=.8)
-            ax.plot(q, uci, c=f"C{i}", linewidth=.8)
-            ax.fill_between(q, lci, uci, color=f"C{i}", alpha=0.3)
-    """
 
 
 __all__ = ['to_abundance', 'basic_stats', 'Parallel',
