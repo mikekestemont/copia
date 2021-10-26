@@ -225,9 +225,12 @@ def evenness(d, q_min=0, q_max=3, step=0.1, CV=False):
     if not CV:
         evenness = (d['richness'] - 1) / (d['richness'][0] - 1)
     else:
-        qs = np.arange(q_min, q_max + step, step) - 1 + 1e-7
+        qs = 1 - np.arange(q_min, q_max + step, step)
         evenness = (1 - (d['richness'] ** qs)) / \
                    (1 - (d['richness'][0] ** qs))
+        # for q = 1, the corresponding evenness measure is  1- CV^2/S
+        i = int(1 / step)
+        evenness[i] = np.log(d['richness'][i]) / np.log(d['richness'][0])
     return evenness
 
 
