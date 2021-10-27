@@ -8,7 +8,7 @@ from collections import Counter
 import seaborn as sb
 import numpy as np
 import matplotlib.pyplot as plt
-plt.style.use('seaborn')
+
 import scipy.optimize as optim
 from scipy.optimize import curve_fit
 from scipy.stats import logser
