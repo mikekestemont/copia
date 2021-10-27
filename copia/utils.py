@@ -149,7 +149,7 @@ def survival_ratio(assemblage, method='chao1', **kwargs):
     return s
 
 
-def evenness(d, q_min=0, q_max=3, step=0.1, CV=False):
+def evenness(d, q_min=0, q_max=3, step=0.1, E=3):
     r"""
     Evenness: calculation of a (normalized) evenness profile
 
@@ -222,17 +222,22 @@ def evenness(d, q_min=0, q_max=3, step=0.1, CV=False):
       of biological collections. Journal of Theoretical Biology (1966),
       131-144.
     """
-    if not CV:
-        evenness = (d['richness'] - 1) / (d['richness'][0] - 1)
-    else:
-        qs = 1 - np.arange(q_min, q_max + step, step)
-        evenness = (1 - (d['richness'] ** qs)) / \
-                   (1 - (d['richness'][0] ** qs))
+    qs = np.arange(q_min, q_max + step, step)
+            
+    if E in (1, 2):
+        qs = (1 - qs) if E == 1 else (qs - 1)
+        evenness = ((1 - (d['richness'] ** qs)) /
+                    (1 - (d['richness'][0] ** qs)))
         # for q = 1, the corresponding evenness measure is  1- CV^2/S
         i = int(1 / step)
         evenness[i] = np.log(d['richness'][i]) / np.log(d['richness'][0])
+    elif E == 3:
+        evenness = (d['richness'] - 1) / (d['richness'][0] - 1)
+    elif E == 4:
+        evenness = (1 - 1 / d['richness']) / (1 - 1 / d['richness'][0])
+    elif E == 5:
+        evenness = np.log(d['richness']) / log(d['richness'][0])
     return evenness
-
 
 __all__ = ['to_abundance', 'basic_stats', 'Parallel',
            'check_random_state', 'survival_ratio',
