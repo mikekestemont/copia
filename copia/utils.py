@@ -236,7 +236,7 @@ def evenness(d, q_min=0, q_max=3, step=0.1, E=3):
     elif E == 4:
         evenness = (1 - 1 / d['richness']) / (1 - 1 / d['richness'][0])
     elif E == 5:
-        evenness = np.log(d['richness']) / log(d['richness'][0])
+        evenness = np.log(d['richness']) / np.log(d['richness'][0])
     return evenness
 
 __all__ = ['to_abundance', 'basic_stats', 'Parallel',
