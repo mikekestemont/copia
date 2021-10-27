@@ -185,17 +185,17 @@ def density(d, empirical=None, title=None, ax=None, xlim=None,
     if ax is None:
         fig, ax = plt.subplots(figsize=figsize)
 
-    sb.histplot(d['bootstrap'], kde=True, ax=ax)
+    sb.histplot(d['bootstrap'], color="C0", kde=True, ax=ax)
 
     q_11, q_50, q_89 = stats.quantile(d['bootstrap'], [0.11, 0.5, 0.89], weights=None)
     q_m, q_p = q_50 - q_11, q_89 - q_50
 
-    ax.axvline(q_50, color='red')
-    ax.axvline(q_11, ls='--', color='red')
-    ax.axvline(q_89, ls='--', color='red')
+    ax.axvline(q_50, color='C3')
+    ax.axvline(q_11, ls='--', color='C3')
+    ax.axvline(q_89, ls='--', color='C3')
 
     if empirical:
-        ax.axvline(empirical, ls='--', color='green', linewidth=2)
+        ax.axvline(empirical, ls='--', color='C1', linewidth=2)
 
     # Format the quantile display:
     fmt = "{{0:{0}}}".format(".2f").format
@@ -207,10 +207,9 @@ def density(d, empirical=None, title=None, ax=None, xlim=None,
         xlim=xlim,
         xlabel=xlabel,
         ylabel=ylabel,
-        title=textstr if not title else title
     )
 
-    return ax
+    return ax, textstr
 
 
 def multi_kde(assemblages, ax=None, figsize=None,
@@ -250,7 +249,7 @@ def multi_kde(assemblages, ax=None, figsize=None,
     for i, (label, assemblage) in enumerate(assemblages.items()):
         sb.kdeplot(assemblage['bootstrap'], label=label,
                    ax=ax, color=f"C{i}", shade=True)
-        ax.axvline(assemblage['survival'], linewidth=2, color=f"C{i}")
+        ax.axvline(assemblage['survival'], ls='--', linewidth=1, color=f"C{i}")
 
     ax.set_xlim(xlim)
     ax.set_xlabel(xlabel)
@@ -311,7 +310,7 @@ def survival_errorbar(survival, ax=None, figsize=None, xlabel=None,
         estimates['survival'],
         yerr=errors,
         fmt='.',
-        c='green',
+        c='C5',
         label='diversity',
         ms=12)
 
@@ -598,9 +597,9 @@ def evenness_plot(evennesses, q_min=0, q_max=3, step=0.1, ax=None,
     q = np.arange(q_min, q_max + step, step)
 
     for i, (label, evenness) in enumerate(evennesses.items()):
-        ax.plot(q, evenness, label=label, c=f"C{i}", linewidth=2)
+        ax.plot(q, evenness, label=label, c=f"C{i}")
 
-    ax.set_xlabel('Diversity order ($q$)')
+    ax.set_xlabel('Diversity order $q$')
     ax.set_ylabel(r'Evenness: $({}^qD - 1) / (\hat{S} - 1)$')
     ax.set_title('Evenness profile')
     ax.legend(loc='best')
