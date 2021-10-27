@@ -209,7 +209,9 @@ def density(d, empirical=None, title=None, ax=None, xlim=None,
         ylabel=ylabel,
     )
 
-    return ax, textstr
+    ax.text(0.6, 0.8, textstr, transform=ax.transAxes)
+
+    return ax
 
 
 def multi_kde(assemblages, ax=None, figsize=None,
