@@ -385,8 +385,11 @@ def accumulation_curve(x, accumulation, minsample=None,
 
         ax.axvline(minsample['richness'], color=c1)
 
-        ax2.grid(None)
         ax2.set(xlabel='Min. add. sample')
+        ax2.ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
+        ax2.get_yaxis().get_offset_text().set_position((1.15, 0))
+        ax2.tick_params(axis='y', which='minor', right=False)
+        plt.setp(ax2.get_yticklabels()[0], visible=False)
 
     # cosmetics etc.
     ax.set(**kwargs)
@@ -515,14 +518,14 @@ def hill_plot(emp, est, q_min=0, q_max=3, step=0.1,
     ax.fill_between(q, lci_emp, uci_emp, color=c_emp, alpha=0.3)
     ax.fill_between(q, lci_est, uci_est, color=c_est, alpha=0.3)
 
-    ax.set(xlabel='Order $q$', ylabel='Hill numbers', ylim=(y_min, y_max),
+    ax.set(xlabel='Diversity order $q$', ylabel='Hill numbers', ylim=(y_min, y_max),
            title=title)
 
     ax.legend(
-        bbox_to_anchor=(0.0, 1.02, 1.0, 0.102),
+        bbox_to_anchor=(0.5, 1.05),
         loc='upper center',
-        ncol=3,
-        mode='expand',
+        ncol=2,
+        # mode='expand',
         borderaxespad=0.0,
         facecolor='white',
         framealpha=1,
