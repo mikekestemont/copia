@@ -147,7 +147,7 @@ def egghe_proot(x, alpha=150):
     Returns
     -------
     richness : float
-        Estimate of the bias-corrected species richness (:math:` S + \hat{f_0}`) for:
+        Estimate of the bias-corrected species richness (:math:`S + \hat{f_0}`) with:
 
         .. math::
            \hat{f_0} = \left( \frac{1}{1 + \frac{2f_2}{(a-1)f_1}} \right)^a
