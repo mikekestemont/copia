@@ -48,7 +48,7 @@ def chao1(x):
     Returns
     -------
     richness : float
-        Estimate (:math:`\hat{f_0}`) of the bias-corrected species richness:
+        Estimate of the bias-corrected species richness (:math:`S + \hat{f_0}`) with:
 
         .. math::
             \hat{f_0} = \left\{\begin{aligned}
@@ -62,6 +62,7 @@ def chao1(x):
             - :math:`f_2` = the number of species that were sighted twice
               (doubletons)
             - :math:`n` = the observed, total sample size.
+            - :math:`S` = the observed number of distinct species.
             - :math:`\hat{f_0}` = the estimated lower bound for the number
               of species that do exist in the assemblage, but which were
               sighted zero times, i.e. the number of undetected species.       
