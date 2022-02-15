@@ -147,7 +147,7 @@ def egghe_proot(x, alpha=150):
     Returns
     -------
     richness : float
-        Estimate (:math:`\hat{f_0}`) of the bias-corrected species richness:
+        Estimate of the bias-corrected species richness (:math:` S + \hat{f_0}`) for:
 
         .. math::
            \hat{f_0} = \left( \frac{1}{1 + \frac{2f_2}{(a-1)f_1}} \right)^a
@@ -157,6 +157,7 @@ def egghe_proot(x, alpha=150):
               the sample (singletons),
             - :math:`f_2` = the number of species that were sighted twice
               (doubletons)
+            - :math:`S` = the observed number of distinct species.
             - :math:`\hat{f_0}` = the estimated number of species that once
               existed in the assemblage, but which were sighted zero times,
               i.e. the number of undetected species.
