@@ -19,7 +19,11 @@ import copia.richness as richness
 import copia.utils as utils
 
 
-def abundance_counts(x, ax=None, figsize=None, trendline=False):
+def abundance_counts(
+        x, ax=None, figsize=None, trendline=False,
+        xlabel="Species", ylabel="Number of sightings",
+        title='Distribution of sightings over species',
+):
     r"""
     Plot per-species abundance in an assemblage, as a ranked bar plot
 
@@ -51,11 +55,10 @@ def abundance_counts(x, ax=None, figsize=None, trendline=False):
            color=next(ax._get_lines.prop_cycler)['color'])
     ax.tick_params(axis='x', which='both', bottom=False,
                    top=False, labelbottom=False)
-    ax.set(xlabel='Species', ylabel='Number of sightings',
-           title='Distribution of sightings over species')
+    ax.set(xlabel=xlabel, ylabel=ylabel, title=title)
 
     textstr = '\n'.join((
-        f'Species: {np.count_nonzero(x)}',
+        f'Categories: {np.count_nonzero(x)}',
         f'Observations: {x.sum()}',
         f'$f_1$: {np.count_nonzero(x == 1)}',
         f'$f_2$: {np.count_nonzero(x == 2)}',
@@ -79,7 +82,10 @@ def abundance_counts(x, ax=None, figsize=None, trendline=False):
     return ax
 
 
-def abundance_histogram(x, ax=None, figsize=None, trendline=False):
+def abundance_histogram(
+        x, ax=None, figsize=None, trendline=False, xlabel='Species',
+        title='Sightings histogram'
+):
     r"""
     Plot an assemblage's frequency histogram as a bar plot
 
@@ -115,7 +121,7 @@ def abundance_histogram(x, ax=None, figsize=None, trendline=False):
 
     x = np.array(sorted(x, reverse=True))
 
-    textstr = (f'Species: {np.count_nonzero(x)}\n'
+    textstr = (f'Categories: {np.count_nonzero(x)}\n'
                f'Observations: {x.sum()}\n'
                f'$f_1$: {np.count_nonzero(x == 1)}\n'
                f'$f_2$: {np.count_nonzero(x == 2)}')
@@ -128,7 +134,7 @@ def abundance_histogram(x, ax=None, figsize=None, trendline=False):
     ax.bar(pos, x, alpha=.7, align='center',
            color=next(ax._get_lines.prop_cycler)['color'])
 
-    ax.set(xlabel='Species', title='Sightings histogram')
+    ax.set(xlabel=xlabel, title=title)
 
     ax.annotate(textstr, xy=(0.7, 0.7), xycoords='axes fraction',
                 va='center', backgroundcolor='white')
