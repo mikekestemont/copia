@@ -8,7 +8,7 @@ with open(os.path.join(directory, "README.md"), encoding="utf-8") as f:
 
 setup(
     name='copia',
-    version='0.1.3',
+    version='0.1.4',
     packages=find_packages(),
     url='https://github.com/mikekestemont/copia',
     license='CC-BY',
