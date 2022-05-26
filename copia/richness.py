@@ -364,6 +364,74 @@ def jackknife(x, k=5, return_order=False, CI=False, conf=0.95):
         return jackest
 
 
+def shared_richness(s1, s2):
+    r"""
+    "Estimate (shared) unseen species in two assemblages
+
+    Parameters
+    ----------
+    s1 : 1D Numpy array representing the observed counts for
+        each individual species in the *first* assemblage.
+        (Should have the same length as `s2`.)
+    s2 : 1D Numpy array representing the observed counts for
+        each individual species in the *second* assemblage.
+        (Should have the same length as `s1`.)
+
+    Returns
+    -------
+    results : dict
+        Results dictionary, with the following fields:
+        - "richness": the estimated total number of species
+                      across both assemblages                      
+        - "observed shared": the observed number of shared 
+                      species across both assemblages
+        - "f0+": the number of unseen species unobserved,
+                      missing in `s1`, but present in `s2`
+        - "f+0": the number of unseen species unobserved,
+                      missing in `s2`, but present in `s1`
+        - "f00": the number of species unobserved and
+                      and missing from both `s1` and s2`
+
+    References
+    -------
+    - Chao, Anne, et al. 2017. 'Deciphering the Enigma of Undetected
+      Species, Phylogenetic, and Functional Diversity Based on Good-Turing
+      Theory.' Ecology (2017), 2914-2929.
+    - Karsdorp, F, 'Estimating Unseen Shared Cultural Diversity' (2022).
+      https://web.archive.org/web/20220526135551/https://www.karsdorp.io/\
+      posts/20220316142536-two_assemblage_good_turing_estimation/
+    """
+
+    assert len(s1) == len(s2)
+    n1, n2 = s1.sum(), s2.sum()
+
+    # Compute f_{0, +}
+    f1p = ((s1 == 1) & (s2 >= 1)).sum()
+    f2p = ((s1 == 2) & (s2 >= 1)).sum()
+    f0p = ((n1 - 1) / n1) * ((f1p ** 2) / (2 * f2p))
+
+    # Compute f_{+, 0}
+    fp1 = ((s1 >= 1) & (s2 == 1)).sum()
+    fp2 = ((s1 >= 1) & (s2 == 2)).sum()
+    fp0 = ((n2 - 1) / n2) * ((fp1 ** 2) / (2 * fp2))
+
+    # Compute f_{0, 0}
+    f11 = ((s1 == 1) & (s2 == 1)).sum()
+    f22 = ((s1 == 2) & (s2 == 2)).sum()
+    f00 = ((n1 - 1) / n1) * ((n2 - 1) / n2) * ((f11 ** 2) / (4 * f22))
+
+    obs_shared = ((s1 > 0) & (s2 > 0)).sum()
+    S = obs_shared + f0p + fp0 + f00
+
+    return {
+        "richness": round(S),
+        "observed shared": obs_shared,
+        "f0+": round(f0p),
+        "f+0": round(fp0),
+        "f00": round(f00)
+    }
+
+
 def min_add_sample(x, solver="grid", search_space=(0, 100, 1e6),
                    tolerance=1e-1, diagnostics=False):
     r"""
@@ -481,6 +549,7 @@ ESTIMATORS = {
     "jackknife": jackknife,
     "minsample": min_add_sample,
     "ace": ace,
+    "shared_richness": shared_richness
 }
 
 
@@ -549,4 +618,4 @@ def diversity(
 
 __all__ = ['empirical_richness', 'chao1', 'iChao1', 'egghe_proot',
            'ace', 'jackknife', 'min_add_sample', 'species_accumulation',
-           'diversity']
+           'diversity', 'shared_richness']
