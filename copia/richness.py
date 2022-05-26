@@ -364,7 +364,9 @@ def jackknife(x, k=5, return_order=False, CI=False, conf=0.95):
         return jackest
 
 
-def shared_richness(s1, s2, CI=False):
+def shared_richness(s1, s2, CI=False, conf=0.95, n_iter=1000,
+                    n_jobs=1, seed=None, disable_pb=False,
+                    **kwargs):
     r"""
     "Estimate (shared) unseen species in two assemblages
 
@@ -436,7 +438,11 @@ def shared_richness(s1, s2, CI=False):
             "f00": round(f00)
         }
     else:
-        raise NotImplementedError('No CI available yet for this estimator.')
+        estimate = stats.bootstrap_shared(
+            s1, s2, fn=partial(ESTIMATORS['shared_richness'], **kwargs),
+            n_iter=n_iter, n_jobs=n_jobs, seed=seed, disable_pb=disable_pb
+        )
+        return estimate
 
 
 def min_add_sample(x, solver="grid", search_space=(0, 100, 1e6),

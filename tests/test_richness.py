@@ -7,7 +7,6 @@ import copia.hill as hill
 import copia.utils as u
 
 
-
 def test_chao1():
     x = np.array([1, 1, 1, 2, 3, 5, 10, 25])
     assert np.isclose(diversity.chao1(x), 12.4, rtol=0.001)
@@ -270,3 +269,6 @@ def test_shared_richness():
     assert np.isclose(est['f0+'], 26, rtol=0.1)
     assert np.isclose(est['f+0'], 48, rtol=0.1)
     assert np.isclose(est['f00'], 34, rtol=0.1)
+
+    # Test bootstrap:
+    est = diversity.shared_richness(c1, c2, CI=True)

@@ -38,6 +38,25 @@ def bt_prob(x):
     p = np.hstack((p, np.array([p0 for i in np.arange(f0)])))
     return p
 
+def bt_prob_shared(x):
+    """
+    A variant of the standard `bt_prop()` function, meant to cater
+    for the shared species richness estimators, where both bootstrap
+    samples have to remain aligned in each iteration.
+    """
+    x, n = np.ma.masked_array(x, mask=x == 0), x.sum()
+    f1, f2 = (x == 1).sum(), (x == 2).sum()
+    C = 1 - f1 / n * (((n - 1) * f1 / ((n - 1) * f1 + 2 * f2)) if f2 > 0 else
+                      ((n - 1) * (f1 - 1) / ((n - 1) * (f1 - 1) + 2)) if f1 > 0 else
+                      0)
+    W = (1 - C) / np.sum(x / n * (1 - x / n) ** n)
+    p = x / n * (1 - W * (1 - x / n) ** n)
+    f0 = np.ceil(((n - 1) / n * f1 ** 2 / (2 * f2)) if f2 > 0 else
+                 ((n - 1) / n * f1 * (f1 - 1) / 2))
+    p0 = (1 - C) / f0
+    p = np.hstack((p, np.array([p0 for i in np.arange(f0)])))
+    return np.asarray(p)
+
 
 def bootstrap(x, fn,
               n_iter=1000,
@@ -99,6 +118,79 @@ def bootstrap(x, fn,
             'std': sd_pro,
             'bootstrap': bt_pro}
 
+
+def bootstrap_shared(x1, x2, fn,
+              n_iter=1000,
+              conf=0.95,
+              n_jobs=1,
+              disable_pb=False,
+              seed=None):
+    """Bootstrap method to construct confidence intervals of a specified 
+    richness index; here specifically for the *shared* richness across two
+    assemblages.
+
+    Parameters
+    ----------
+    x1 : 1D numpy array representing the abundances (observed
+        counts) for each individual species in the first
+        collection.
+    x2 : 1D numpy array representing the abundances (observed
+        counts) for each individual species in the second
+        collection.
+    fn : Callable representing the target richness index.
+    n_iter : int (default = 1000)
+        Number of bootstrap samples.
+    conf : float (default = 0.95)
+        Compute the confidence interval at the specified level.
+    n_jobs : int (default = 1)
+        Number of cores to use for computation.
+    seed : int (default = None)
+        A seed to initialize the random number generator. 
+
+    Returns
+    -------
+    estimates : dict
+        A dictionary providing the empirical richness index keyed with 
+        `richness`, the bootstrapped estimates `bootstrap`, the lower and 
+        upper endpoint of the specified confidence interval (`lci` and `uci`), 
+        and the standard deviation of the richness index. 
+    """
+    rnd = utils.check_random_state(seed)
+    pro = fn(x1, x2)
+
+    # not sure whether this is correct:
+    p, n = bt_prob_shared(x1), x1.sum()
+    data_bt1 = rnd.multinomial(n, p, n_iter)
+    data_bt2 = rnd.multinomial(n, p, n_iter)
+    
+    pool = utils.Parallel(n_jobs, n_iter, disable_pb=disable_pb)
+    for row1, row2 in zip(data_bt1, data_bt2):
+        pool.apply_async(fn, args=(row1, row2))
+    
+    bootstraps = pool.result()
+    
+    estimates = {}
+    for k in ('richness', 'observed shared', 'f0+', 'f+0', 'f00'):
+        bt_pro = np.array([bootstrap[k] for bootstrap in bootstraps], dtype=np.float64)
+        pro_mean = bt_pro.mean(0)
+        
+        lci_pro = -np.quantile(bt_pro, (1 - conf) / 2, axis=0) + pro_mean
+        uci_pro = np.quantile(bt_pro, 1 - (1 - conf) / 2, axis=0) - pro_mean
+        sd_pro = np.std(bt_pro, axis=0)
+
+        bt_pro = pro_mean - bt_pro
+
+        lci_pro, uci_pro = pro[k] - lci_pro, pro[k] + uci_pro
+        bt_pro = pro[k] - bt_pro
+
+        estimates[k] = {
+                        'richness': pro[k],
+                        'lci': lci_pro,
+                        'uci': uci_pro,
+                        'std': sd_pro,
+                        'bootstrap': bt_pro
+                       }
+    return estimates
 
 def quantile(x, q, weights=None):
     x = np.atleast_1d(x)
@@ -168,4 +260,4 @@ def rarefaction_extrapolation(x, max_steps):
     return np.array([_sub(mi) for mi in range(1, max_steps)])
 
 
-__all__ = ['rarefaction_extrapolation', 'quantile', 'bootstrap']
+__all__ = ['rarefaction_extrapolation', 'quantile', 'bootstrap', 'bootstrap_shared']
