@@ -264,9 +264,7 @@ def test_shared_richness():
 
     # Both collections are aligned and should have the same length:
     assert len(c1) == len(c2)
-
     est = diversity.shared_richness(c1, c2)
-    print(est)
     assert np.isclose(est['richness'], 244, rtol=0.1)
     assert np.isclose(est['observed shared'], 136, rtol=0.1)
     assert np.isclose(est['f0+'], 26, rtol=0.1)

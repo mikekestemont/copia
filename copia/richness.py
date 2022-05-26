@@ -364,7 +364,7 @@ def jackknife(x, k=5, return_order=False, CI=False, conf=0.95):
         return jackest
 
 
-def shared_richness(s1, s2):
+def shared_richness(s1, s2, CI=False):
     r"""
     "Estimate (shared) unseen species in two assemblages
 
@@ -376,6 +376,10 @@ def shared_richness(s1, s2):
     s2 : 1D Numpy array representing the observed counts for
         each individual species in the *second* assemblage.
         (Should have the same length as `s1`.)
+    CI : bool (default = False)
+        Whether to return the confidence interval for the estimates
+    conf : float (default = 0.95)
+        Confidence level for the confidence interval (e.g. 0.95).
 
     Returns
     -------
@@ -403,33 +407,36 @@ def shared_richness(s1, s2):
     """
 
     assert len(s1) == len(s2)
-    n1, n2 = s1.sum(), s2.sum()
+    if not CI:
+        n1, n2 = s1.sum(), s2.sum()
 
-    # Compute f_{0, +}
-    f1p = ((s1 == 1) & (s2 >= 1)).sum()
-    f2p = ((s1 == 2) & (s2 >= 1)).sum()
-    f0p = ((n1 - 1) / n1) * ((f1p ** 2) / (2 * f2p))
+        # Compute f_{0, +}
+        f1p = ((s1 == 1) & (s2 >= 1)).sum()
+        f2p = ((s1 == 2) & (s2 >= 1)).sum()
+        f0p = ((n1 - 1) / n1) * ((f1p ** 2) / (2 * f2p))
 
-    # Compute f_{+, 0}
-    fp1 = ((s1 >= 1) & (s2 == 1)).sum()
-    fp2 = ((s1 >= 1) & (s2 == 2)).sum()
-    fp0 = ((n2 - 1) / n2) * ((fp1 ** 2) / (2 * fp2))
+        # Compute f_{+, 0}
+        fp1 = ((s1 >= 1) & (s2 == 1)).sum()
+        fp2 = ((s1 >= 1) & (s2 == 2)).sum()
+        fp0 = ((n2 - 1) / n2) * ((fp1 ** 2) / (2 * fp2))
 
-    # Compute f_{0, 0}
-    f11 = ((s1 == 1) & (s2 == 1)).sum()
-    f22 = ((s1 == 2) & (s2 == 2)).sum()
-    f00 = ((n1 - 1) / n1) * ((n2 - 1) / n2) * ((f11 ** 2) / (4 * f22))
+        # Compute f_{0, 0}
+        f11 = ((s1 == 1) & (s2 == 1)).sum()
+        f22 = ((s1 == 2) & (s2 == 2)).sum()
+        f00 = ((n1 - 1) / n1) * ((n2 - 1) / n2) * ((f11 ** 2) / (4 * f22))
 
-    obs_shared = ((s1 > 0) & (s2 > 0)).sum()
-    S = obs_shared + f0p + fp0 + f00
+        obs_shared = ((s1 > 0) & (s2 > 0)).sum()
+        S = obs_shared + f0p + fp0 + f00
 
-    return {
-        "richness": round(S),
-        "observed shared": obs_shared,
-        "f0+": round(f0p),
-        "f+0": round(fp0),
-        "f00": round(f00)
-    }
+        return {
+            "richness": round(S),
+            "observed shared": obs_shared,
+            "f0+": round(f0p),
+            "f+0": round(fp0),
+            "f00": round(f00)
+        }
+    else:
+        raise NotImplementedError('No CI available yet for this estimator.')
 
 
 def min_add_sample(x, solver="grid", search_space=(0, 100, 1e6),
