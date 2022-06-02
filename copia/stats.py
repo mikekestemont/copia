@@ -44,7 +44,8 @@ def bt_prob_shared(x):
     for the shared species richness estimators, where both bootstrap
     samples have to remain aligned in each iteration.
     """
-    x, n = np.ma.masked_array(x, mask=x == 0), x.sum()
+    mask = x == 0
+    x, n = np.ma.masked_array(x, mask=mask), x.sum()
     f1, f2 = (x == 1).sum(), (x == 2).sum()
     C = 1 - f1 / n * (((n - 1) * f1 / ((n - 1) * f1 + 2 * f2)) if f2 > 0 else
                       ((n - 1) * (f1 - 1) / ((n - 1) * (f1 - 1) + 2)) if f1 > 0 else
@@ -54,8 +55,10 @@ def bt_prob_shared(x):
     f0 = np.ceil(((n - 1) / n * f1 ** 2 / (2 * f2)) if f2 > 0 else
                  ((n - 1) / n * f1 * (f1 - 1) / 2))
     p0 = (1 - C) / f0
-    p = np.hstack((p, np.array([p0 for i in np.arange(f0)])))
-    return np.asarray(p)
+    f0 = f0 - np.count_nonzero(x == 0) # substract known zeros from estimated zeros
+    p = np.where(~mask, p, p0) # assign p0 to known zeros
+    p = np.hstack((p, np.array([p0 for i in np.arange(f0)]))) # pad for remaining estimated zeros
+    return p, p0
 
 
 def bootstrap(x, fn,
@@ -158,10 +161,15 @@ def bootstrap_shared(x1, x2, fn,
     rnd = utils.check_random_state(seed)
     pro = fn(x1, x2)
 
-    # not sure whether this is correct:
-    p, n = bt_prob_shared(x1), x1.sum()
-    data_bt1 = rnd.multinomial(n, p, n_iter)
-    data_bt2 = rnd.multinomial(n, p, n_iter)
+    (p1, p1_0), n1 = bt_prob_shared(x1), x1.sum()
+    (p2, p2_0), n2, bt_prob_shared(x2), x2.sum()
+
+    size = max(p1.shape[0], p2.shape[0])
+    p1 = np.hstack((p1, np.array([p0_1 for i in np.arange(size - p1.shape[0])])))
+    p2 = np.hstack((p2, np.array([p0_2 for i in np.arange(size - p2.shape[0])])))
+
+    data_bt1 = rnd.multinomial(n1, p1, n_iter)
+    data_bt2 = rnd.multinomial(n2, p2, n_iter)
     
     pool = utils.Parallel(n_jobs, n_iter, disable_pb=disable_pb)
     for row1, row2 in zip(data_bt1, data_bt2):
