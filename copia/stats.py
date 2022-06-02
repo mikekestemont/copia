@@ -162,7 +162,7 @@ def bootstrap_shared(x1, x2, fn,
     pro = fn(x1, x2)
 
     (p1, p1_0), n1 = bt_prob_shared(x1), x1.sum()
-    (p2, p2_0), n2, bt_prob_shared(x2), x2.sum()
+    (p2, p2_0), n2 = bt_prob_shared(x2), x2.sum()
 
     size = max(p1.shape[0], p2.shape[0])
     p1 = np.hstack((p1, np.array([p0_1 for i in np.arange(size - p1.shape[0])])))
