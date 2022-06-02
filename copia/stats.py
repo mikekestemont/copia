@@ -55,7 +55,7 @@ def bt_prob_shared(x):
     f0 = np.ceil(((n - 1) / n * f1 ** 2 / (2 * f2)) if f2 > 0 else
                  ((n - 1) / n * f1 * (f1 - 1) / 2))
     p0 = (1 - C) / f0
-    f0 = f0 - np.count_nonzero(x == 0) # substract known zeros from estimated zeros
+    f0 = f0 - np.count_nonzero(mask) # substract known zeros from estimated zeros
     p = np.where(~mask, p, p0) # assign p0 to known zeros
     p = np.hstack((p, np.array([p0 for i in np.arange(f0)]))) # pad for remaining estimated zeros
     return p, p0
