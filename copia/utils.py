@@ -30,6 +30,18 @@ def basic_stats(x):
             'n': x.sum()}
 
 
+def is_valid_abundance_array(x):
+    if (x < 0).any():
+        msg = "Elements of `x` should be strictly non-negative"
+        raise ValueError(msg)
+
+    if x.sum() <= 0:
+        msg = "`x` should contain at least 1 sighting"
+        raise ValueError(msg)
+    
+    return True
+
+
 class Parallel:
     r"""
     Helper class for parallel execution.

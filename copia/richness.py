@@ -10,7 +10,7 @@ import scipy.stats
 from scipy.optimize import fsolve
 
 import copia.stats as stats
-
+import copia.utils as utils
 
 def empirical_richness(x, species=True):
     r"""
@@ -366,7 +366,7 @@ def jackknife(x, k=5, return_order=False, CI=False, conf=0.95):
 
 def shared_richness(s1, s2, CI=False):
     r"""
-    "Estimate (shared) unseen species in two assemblages
+    Estimate (shared) unseen species in two assemblages
 
     Parameters
     ----------
@@ -401,7 +401,7 @@ def shared_richness(s1, s2, CI=False):
     - Chao, Anne, et al. 2017. 'Deciphering the Enigma of Undetected
       Species, Phylogenetic, and Functional Diversity Based on Good-Turing
       Theory.' Ecology (2017), 2914-2929.
-    - Karsdorp, F, 'Estimating Unseen Shared Cultural Diversity' (2022).
+    - Code taken from: Karsdorp, F, 'Estimating Unseen Shared Cultural Diversity' (2022).
       https://web.archive.org/web/20220526135551/https://www.karsdorp.io/\
       posts/20220316142536-two_assemblage_good_turing_estimation/
     """
@@ -556,12 +556,12 @@ ESTIMATORS = {
     "jackknife": jackknife,
     "minsample": min_add_sample,
     "ace": ace,
-    "shared_richness": shared_richness
+    "shared_richness": shared_richness,
 }
 
 
 def diversity(
-        x, method=None, CI=False, conf=0.95, n_iter=1000, n_jobs=1, seed=None, disable_pb=False, **kwargs):
+        x, x2=None, method=None, CI=False, conf=0.95, n_iter=1000, n_jobs=1, seed=None, disable_pb=False, **kwargs):
     r"""
     Wrapper for various bias-corrected richness functions
 
@@ -570,12 +570,17 @@ def diversity(
     x : array-like, with shape (number of species)
         An array representing the abundances (observed
         counts) for each individual species.
+    x2: array-like, with shape (number of species) (default = None)
+        An array representing the abundances (observed
+        counts) for each individual species. Only used for shared
+        species estimation.
     method : str (default = None)
         One estimator of:
             - 'chao1'
             - 'egghe_proot'
             - 'jackknife'
             - 'minsample'
+            - 'shared_richness'
             - 'empirical' (same as None)
     **kwargs : additional parameters passed to selected method
 
@@ -585,7 +590,8 @@ def diversity(
     specified method to compute the confidence intervals around
     the central estimate etc. For the Jackknife procedure, the
     CI is calculated analytically and no bootstrap values will
-    be included in the returned dict.
+    be included in the returned dict. For chao1_shared no confidence
+    intervals have been implemented yet.
 
     Returns
     -------
@@ -594,13 +600,9 @@ def diversity(
 
     x = np.array(x, dtype=np.int64)
 
-    if (x < 0).any():
-        msg = "Elements of `x` should be strictly non-negative"
-        raise ValueError(msg)
-
-    if x.sum() <= 0:
-        msg = "`x` appears to be empty"
-        raise ValueError(msg)
+    assert utils.is_valid_abundance_array(x)
+    if x2 is not None:
+        assert utils.is_valid_abundance_array(x2)
 
     if method is not None and method.lower() not in ESTIMATORS:
         raise ValueError(f"Unknown estimation method `{method}`.")
@@ -610,7 +612,9 @@ def diversity(
 
     method = method.lower()
 
-    if CI and method != 'jackknife':
+    if method == "shared_richness":
+        estimate = ESTIMATORS[method](x, x2)
+    elif CI and method != 'jackknife':
         estimate = stats.bootstrap(
             x, fn=partial(ESTIMATORS[method], **kwargs),
             n_iter=n_iter, n_jobs=n_jobs, seed=seed, disable_pb=disable_pb

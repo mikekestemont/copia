@@ -50,8 +50,8 @@ def test_egghe_proot():
 
     # test kwargs:
     x = np.array([1, 1, 1, 2, 3, 5, 10, 25])
-    assert diversity.diversity(x, 'egghe_proot', alpha=150) != \
-           diversity.diversity(x, 'egghe_proot', alpha=50)
+    assert diversity.diversity(x, method='egghe_proot', alpha=150) != \
+           diversity.diversity(x, method='egghe_proot', alpha=50)
 
     # test against example from paper (pp. 260ff):
     assemblage = [f'{i}-1' for i in range(714)]
@@ -148,11 +148,11 @@ def test_minsample():
     assert counts['S'] == 9
     assert counts['n'] == 161
 
-    d = diversity.diversity(x, 'minsample', solver='grid', diagnostics=True)
+    d = diversity.diversity(x, method='minsample', solver='grid', diagnostics=True)
     assert np.isclose(d['x*'], 2.221115367, rtol=0.01)
     assert np.isclose(d['richness'], 161 + 357.600, rtol=1)
 
-    d = diversity.diversity(x, 'minsample', solver='fsolve', diagnostics=True)
+    d = diversity.diversity(x, method='minsample', solver='fsolve', diagnostics=True)
     assert np.isclose(d['x*'], 2.221115367, rtol=0.01)
     assert np.isclose(d['richness'], 161 + 357.600, rtol=1)
 
