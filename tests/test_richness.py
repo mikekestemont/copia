@@ -270,3 +270,29 @@ def test_shared_richness():
     assert np.isclose(est['f0+'], 26, rtol=0.1)
     assert np.isclose(est['f+0'], 48, rtol=0.1)
     assert np.isclose(est['f00'], 34, rtol=0.1)
+
+
+def test_no_unseen_functional_attribute_diversity():
+    X = np.array([
+        [0.0, 0.0], [0.0, 1.0],
+        [1.0, 0.0], [1.0, 1.0],
+    ])
+
+    counts = np.array([2, 2, 2, 2])
+    FAD = diversity.functional_attribute_diversity(X, counts, distance_metric="cityblock")
+    assert FAD["F00"] == 0 and FAD["F0+"] == 0 and FAD["F+0"] == 0
+
+
+def test_functional_attribute_diversity():
+    X = np.array([
+        [0.0, 0.0], [0.0, 1.0],
+        [1.0, 0.0], [1.0, 1.0],
+    ])
+    
+    counts = np.array([10, 5, 2, 1])
+    FAD = diversity.functional_attribute_diversity(X, counts, distance_metric="cityblock")
+
+    assert FAD["obs"] == 16
+    assert FAD["F+0"] == FAD["F0+"] == 2
+    assert FAD["F00"] == 0
+    assert FAD["FAD"] == 20
