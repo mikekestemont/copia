@@ -4,12 +4,15 @@ Bias-correcting richness estimators for abundance data
 """
 import warnings
 from functools import partial
+from typing import Dict
 
 import numpy as np
 import scipy.stats
 from scipy.optimize import fsolve
+from scipy.spatial.distance import squareform, pdist
 
 import copia.stats as stats
+import copia.utils as utils
 
 
 def empirical_richness(x, species=True):
@@ -366,7 +369,7 @@ def jackknife(x, k=5, return_order=False, CI=False, conf=0.95):
 
 def shared_richness(s1, s2, CI=False):
     r"""
-    "Estimate (shared) unseen species in two assemblages
+    Estimate (shared) unseen species in two assemblages
 
     Parameters
     ----------
@@ -401,7 +404,7 @@ def shared_richness(s1, s2, CI=False):
     - Chao, Anne, et al. 2017. 'Deciphering the Enigma of Undetected
       Species, Phylogenetic, and Functional Diversity Based on Good-Turing
       Theory.' Ecology (2017), 2914-2929.
-    - Karsdorp, F, 'Estimating Unseen Shared Cultural Diversity' (2022).
+    - Code taken from: Karsdorp, F, 'Estimating Unseen Shared Cultural Diversity' (2022).
       https://web.archive.org/web/20220526135551/https://www.karsdorp.io/\
       posts/20220316142536-two_assemblage_good_turing_estimation/
     """
@@ -536,6 +539,75 @@ def min_add_sample(x, solver="grid", search_space=(0, 100, 1e6),
     else:
         return n + m
 
+
+def functional_attribute_diversity(X: np.ndarray, counts: np.ndarray, distance_metric: str=None) -> Dict[str, int]:
+    dm = squareform(pdist(X, metric=distance_metric))
+    return _compute_fad(dm, counts)
+
+
+def _compute_fad(dm: np.ndarray, counts: np.ndarray) -> Dict[str, int]:
+    
+    assert dm.shape[0] == dm.shape[1] == counts.shape[0]
+    
+    FAD_obs = np.sum(dm[counts > 0][:, counts > 0])
+    mean_distance = np.mean(dm)
+    F1p = np.sum(dm[counts == 1][:, counts >= 1])
+    Fp1 = np.sum(dm[counts >= 1][:, counts == 1])
+    F2p = np.sum(dm[counts == 2][:, counts >= 1])
+    F2p = max(F2p, mean_distance)
+    Fp2 = np.sum(dm[counts >= 1][:, counts == 2])
+    Fp2 = max(Fp2, mean_distance)
+    F11 = np.sum(dm[counts == 1][:, counts == 1])
+    F22 = np.sum(dm[counts == 2][:, counts == 2])
+    F22 = max(F22, mean_distance)
+
+    assert round(F1p) == round(Fp1), (F1p, Fp1)
+    assert round(F2p) == round(Fp2), (F2p, Fp2)
+
+    n = sum(counts)
+    k = (n - 1) / n
+    F0p = k * (F1p ** 2) / (2 * F2p)
+    Fp0 = k * (Fp1 ** 2) / (2 * Fp2)
+    F00 = ((n - 2) / n) * ((n - 3) / (n - 1)) * ((F11 ** 2) / (4 * F22))
+
+    # Compute true FAD
+    FAD = FAD_obs + F0p + Fp0 + F00
+
+    # compute CI
+    Fii =  np.array([FAD_obs, F11, F22, F1p, F2p, Fp1, Fp2])
+    k_star = (n - 2) * (n - 3) / (n * (n - 1))
+    dF = np.array([
+        1,
+        k_star * (F11 / (2 * F22)),
+        -k_star * (F11 / F22)**2 / 4,
+        k * (F1p / F2p),
+        -k * (F1p / F2p)**2 / 2,
+        k * (Fp1 / Fp2),
+        -k * (Fp1 / Fp2)**2 / 2
+    ])
+    cov_matrix = np.zeros((7, 7))
+    cov_matrix[6, 6] = Fii[6] * (1 - Fii[6] / FAD)
+    for i in range(len(Fii) - 1):
+        cov_matrix[i, i] = Fii[i] * (1 - Fii[i] / FAD)
+        for j in range(i + 1, len(Fii)):
+            cov_matrix[j, i] = cov_matrix[i, j] = -Fii[i] * Fii[j] / FAD
+
+    V = np.linalg.multi_dot((dF, cov_matrix, dF))
+    F_unseen = Fp0 + F0p + F00
+    R = np.exp(1.96 * (np.log(1 + V / (F_unseen)**2))**(1 / 2))
+    lower, upper = FAD_obs + F_unseen / R, FAD_obs + F_unseen * R
+
+    return {
+        "obs": round(FAD_obs),
+        "F0+": round(F0p),
+        "F+0": round(Fp0),
+        "F00": round(F00),
+        "FAD": round(FAD),
+        "CI_lower": lower,
+        "CI_upper": upper
+    }
+
+
 def species_accumulation(x, max_steps, n_iter=100):
     steps = np.arange(1, max_steps)
     interpolated = np.arange(1, max_steps) < x.sum()
@@ -556,12 +628,12 @@ ESTIMATORS = {
     "jackknife": jackknife,
     "minsample": min_add_sample,
     "ace": ace,
-    "shared_richness": shared_richness
+    "shared_richness": shared_richness,
 }
 
 
 def diversity(
-        x, method=None, CI=False, conf=0.95, n_iter=1000, n_jobs=1, seed=None, disable_pb=False, **kwargs):
+        x, x2=None, method=None, CI=False, conf=0.95, n_iter=1000, n_jobs=1, seed=None, disable_pb=False, **kwargs):
     r"""
     Wrapper for various bias-corrected richness functions
 
@@ -570,12 +642,17 @@ def diversity(
     x : array-like, with shape (number of species)
         An array representing the abundances (observed
         counts) for each individual species.
+    x2: array-like, with shape (number of species) (default = None)
+        An array representing the abundances (observed
+        counts) for each individual species. Only used for shared
+        species estimation.
     method : str (default = None)
         One estimator of:
             - 'chao1'
             - 'egghe_proot'
             - 'jackknife'
             - 'minsample'
+            - 'shared_richness'
             - 'empirical' (same as None)
     **kwargs : additional parameters passed to selected method
 
@@ -585,7 +662,8 @@ def diversity(
     specified method to compute the confidence intervals around
     the central estimate etc. For the Jackknife procedure, the
     CI is calculated analytically and no bootstrap values will
-    be included in the returned dict.
+    be included in the returned dict. For chao1_shared no confidence
+    intervals have been implemented yet.
 
     Returns
     -------
@@ -594,13 +672,9 @@ def diversity(
 
     x = np.array(x, dtype=np.int64)
 
-    if (x < 0).any():
-        msg = "Elements of `x` should be strictly non-negative"
-        raise ValueError(msg)
-
-    if x.sum() <= 0:
-        msg = "`x` appears to be empty"
-        raise ValueError(msg)
+    assert utils.is_valid_abundance_array(x)
+    if x2 is not None:
+        assert utils.is_valid_abundance_array(x2)
 
     if method is not None and method.lower() not in ESTIMATORS:
         raise ValueError(f"Unknown estimation method `{method}`.")
@@ -610,7 +684,9 @@ def diversity(
 
     method = method.lower()
 
-    if CI and method != 'jackknife':
+    if method == "shared_richness":
+        estimate = ESTIMATORS[method](x, x2, CI=CI)
+    elif CI and method != 'jackknife':
         estimate = stats.bootstrap(
             x, fn=partial(ESTIMATORS[method], **kwargs),
             n_iter=n_iter, n_jobs=n_jobs, seed=seed, disable_pb=disable_pb
@@ -625,4 +701,4 @@ def diversity(
 
 __all__ = ['empirical_richness', 'chao1', 'iChao1', 'egghe_proot',
            'ace', 'jackknife', 'min_add_sample', 'species_accumulation',
-           'diversity', 'shared_richness']
+           'diversity', 'shared_richness', 'functional_attribute_diversity']
