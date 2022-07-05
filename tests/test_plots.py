@@ -5,9 +5,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from copia.plot import *
-from copia.richness import diversity, species_accumulation
-from copia.utils import survival_ratio, evenness
-from copia.hill import hill_numbers
+from copia.estimators import diversity, species_accumulation
+from copia.stats import survival_ratio
+from copia.diversity import hill_numbers, evenness
 
 
 def test_single_assemblage():
@@ -17,7 +17,7 @@ def test_single_assemblage():
                       2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
     abundance = np.array(spider_girdled)
 
-    ax = abundance_counts(abundance)
+    ax = abundance_barplot(abundance)
     assert isinstance(ax, plt.Axes)
     
     ax = abundance_histogram(abundance)
@@ -45,15 +45,15 @@ def test_single_assemblage():
     assert isinstance(ax, plt.Axes)
 
     estimate = diversity(abundance, method='iChao1', CI=True)
-    ax = density(estimate)
+    ax = density_plot(estimate)
     assert isinstance(ax, plt.Axes)
 
     empirical = diversity(abundance, method='empirical')
-    ax = density(estimate, empirical)
+    ax = density_plot(estimate, empirical)
     assert isinstance(ax, plt.Axes)
     
     survival = survival_ratio(abundance, method='chao1')
-    ax = density(survival, xlim=(0, 1))
+    ax = density_plot(survival, xlim=(0, 1))
     assert isinstance(ax, plt.Axes)
 
     emp, est = hill_numbers(abundance, n_iter=10)
@@ -78,7 +78,7 @@ def test_multiple_assemblages():
     for category, assemblage in assemblages.items():
         survival[category] = survival_ratio(assemblage, method='chao1')
     
-    ax = multi_kde(survival)
+    ax = multi_kde_plot(survival)
     assert isinstance(ax, plt.Axes)
 
     ax = survival_errorbar(survival)
