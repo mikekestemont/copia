@@ -15,6 +15,16 @@ from tqdm import tqdm
 import copia.utils as utils
 
 
+def basic_stats(x):
+    assert isinstance(x, np.ndarray)
+    return {'f1': np.count_nonzero(x == 1),
+            'f2': np.count_nonzero(x == 2),
+            'f3': np.count_nonzero(x == 3),
+            'f4': np.count_nonzero(x == 4),
+            'S': (x > 0).sum(),
+            'n': x.sum()}
+
+
 def dbinom(x, size, prob):
     d = scipy.stats.binom(size, prob).pmf(x)
     return 1 if np.isnan(d) else d

@@ -442,7 +442,7 @@ def minsample_diagnostic_plot(x, diagnostics, max_x_ast=100, ax=None,
     x_ast = diagnostics['x*']
     sp = np.linspace(x_ast - 1, x_ast + 1, max_x_ast)
 
-    basics = utils.basic_stats(x)
+    basics = stats.basic_stats(x)
     f1 = basics['f1']
     f2 = basics['f2']
 

@@ -121,7 +121,7 @@ def test_iChao1():
     x = u.to_abundance(assemblage)
 
     # check whether the assemblage is correctly constructed:
-    counts = u.basic_stats(x)
+    counts = stats.basic_stats(x)
     assert counts['S'] == 78
     assert counts['n'] == 127
     assert np.isclose(diversity.iChao1(x), 290.9, rtol=0.01)
@@ -142,7 +142,7 @@ def test_minsample():
     x = u.to_abundance(assemblage)
 
     # check whether the assemblage is correctly constructed:
-    counts = u.basic_stats(x)
+    counts = stats.basic_stats(x)
     assert counts['f1'] == 3
     assert counts['f2'] == 2
     assert counts['S'] == 9

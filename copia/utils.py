@@ -20,16 +20,6 @@ def bincount(x):
     return np.bincount(x)
 
 
-def basic_stats(x):
-    assert isinstance(x, np.ndarray)
-    return {'f1': np.count_nonzero(x == 1),
-            'f2': np.count_nonzero(x == 2),
-            'f3': np.count_nonzero(x == 3),
-            'f4': np.count_nonzero(x == 4),
-            'S': (x > 0).sum(),
-            'n': x.sum()}
-
-
 def is_valid_abundance_array(x):
     if (x < 0).any():
         msg = "Elements of `x` should be strictly non-negative"
@@ -251,6 +241,5 @@ def evenness(d, q_min=0, q_max=3, step=0.1, E=3):
         evenness = np.log(d['richness']) / np.log(d['richness'][0])
     return evenness
 
-__all__ = ['to_abundance', 'basic_stats', 'Parallel',
-           'check_random_state', 'survival_ratio',
+__all__ = ['to_abundance', 'Parallel', 'check_random_state', 'survival_ratio',
            'evenness', 'bincount']
