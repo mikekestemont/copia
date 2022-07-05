@@ -546,7 +546,6 @@ def functional_attribute_diversity(X: np.ndarray, counts: np.ndarray, distance_m
 
 
 def _compute_fad(dm: np.ndarray, counts: np.ndarray) -> Dict[str, int]:
-    # Code based on the R implementation in https://github.com/AnneChao/Good-Turing/blob/master/Good-Turing.R
     
     assert dm.shape[0] == dm.shape[1] == counts.shape[0]
     
@@ -604,8 +603,8 @@ def _compute_fad(dm: np.ndarray, counts: np.ndarray) -> Dict[str, int]:
         "F+0": round(Fp0),
         "F00": round(F00),
         "FAD": round(FAD),
-        "CI_lower": round(lower),
-        "CI_upper": round(upper)
+        "CI_lower": lower,
+        "CI_upper": upper
     }
 
 
