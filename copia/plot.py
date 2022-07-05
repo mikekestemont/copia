@@ -344,7 +344,7 @@ def accumulation_curve(x, accumulation, minsample=None,
         counts) for each individual species.
     accumulation : dict
         The species accumulation curve, obtained from
-        `copia.estimators.species_accumulation()`.
+        `copia.stats.species_accumulation()`.
     minsample : dict (default = None)
         The result of a call to copia.estimators.min_add\
         _sample(). If specified, a KDE for the bootstrap-
@@ -408,7 +408,7 @@ def minsample_diagnostic_plot(x, diagnostics, max_x_ast=100, ax=None,
     r"""
     A diagnostic plot showing the detected intersection
     between v() and h() for checking whether the optimization
-    in `copia.richness.species_accumulation()` has converged.
+    in `copia.stats.species_accumulation()` has converged.
 
     Parameters
     ----------
@@ -472,10 +472,10 @@ def hill_plot(emp, est, q_min=0, q_max=3, step=0.1,
     ----------
     emp : dict
         The empirical Hill number profile, i.e. the
-        first dict returned by `copia.hill.hill_numbers()`.
+        first dict returned by `copia.diversity.hill_numbers()`.
     est : dict
         The estimated Hill number profile, i.e. the
-        second dict returned by `copia.hill.hill_numbers()`.
+        second dict returned by `copia.diversity.hill_numbers()`.
     q_min : float (default = 0)
         Minimum order to consider
     q_max : float (default = 3)

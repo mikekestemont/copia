@@ -171,7 +171,7 @@ def evenness(d, q_min=0, q_max=3, step=0.1, E=3):
     Note
     ----
         The recommended usage of this function is to apply it to one of
-        the dicts returned by `copia.hill.hill_numbers()`.
+        the dicts returned by `copia.diversity.hill_numbers()`.
 
     References
     ----------

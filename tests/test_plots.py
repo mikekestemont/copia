@@ -5,8 +5,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from copia.plot import *
-from copia.estimators import diversity, species_accumulation
-from copia.stats import survival_ratio
+from copia.estimators import diversity
+from copia.stats import survival_ratio, species_accumulation
 from copia.diversity import hill_numbers, evenness
 
 

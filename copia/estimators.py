@@ -608,18 +608,6 @@ def _compute_fad(dm: np.ndarray, counts: np.ndarray) -> Dict[str, int]:
     }
 
 
-def species_accumulation(x, max_steps, n_iter=100):
-    steps = np.arange(1, max_steps)
-    interpolated = np.arange(1, max_steps) < x.sum()
-
-    accumulation = stats.bootstrap(x, fn=partial(stats.rarefaction_extrapolation,
-                                    max_steps=max_steps),
-                            n_iter=n_iter)
-    accumulation['interpolated'] = interpolated
-    accumulation['steps'] = steps
-    return accumulation
-
-
 ESTIMATORS = {
     "empirical": empirical_richness,
     "chao1": chao1,
@@ -700,5 +688,5 @@ def diversity(
     return estimate
 
 __all__ = ['empirical_richness', 'chao1', 'iChao1', 'egghe_proot',
-           'ace', 'jackknife', 'min_add_sample', 'species_accumulation',
+           'ace', 'jackknife', 'min_add_sample',
            'diversity', 'shared_richness', 'functional_attribute_diversity']

@@ -7,8 +7,11 @@ Functions based on the R code provided in
 - http://chao.stat.nthu.edu.tw/wordpress/paper/113_Rcode.txt, and
 - https://github.com/AnneChao/SpadeR/blob/master/R/Diversity_subroutine.R
 """
+from functools import partial
+
 import numpy as np
 import scipy.stats
+
 from scipy.special import gammaln
 from tqdm import tqdm
 
@@ -250,6 +253,19 @@ def survival_ratio(assemblage, method='chao1', **kwargs):
         s['uci'] = empirical / d['lci']
 
     return s
+
+
+def species_accumulation(x, max_steps, n_iter=100):
+    steps = np.arange(1, max_steps)
+    interpolated = np.arange(1, max_steps) < x.sum()
+
+    accumulation = bootstrap(x, fn=partial(rarefaction_extrapolation,
+                                           max_steps=max_steps),
+                            n_iter=n_iter)
+    accumulation['interpolated'] = interpolated
+    accumulation['steps'] = steps
+    return accumulation
+
 
 
 
