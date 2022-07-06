@@ -1,3 +1,4 @@
-from copia.richness import *
+from copia.estimators import *
 from copia.plot import *
+from copia.diversity import *
 

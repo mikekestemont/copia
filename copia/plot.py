@@ -14,12 +14,11 @@ from scipy.optimize import curve_fit
 from scipy.stats import logser
 import pandas as pd
 
-import copia.stats as stats
-import copia.richness as richness
-import copia.utils as utils
+import copia.stats
+import copia.estimators
 
 
-def abundance_counts(
+def abundance_barplot(
         x, ax=None, figsize=None, trendline=False,
         xlabel="Species", ylabel="Number of sightings",
         title='Distribution of sightings over species',
@@ -153,7 +152,7 @@ def abundance_histogram(
     return ax
 
 
-def density(d, empirical=None, title=None, ax=None, xlim=None,
+def density_plot(d, empirical=None, title=None, ax=None, xlim=None,
             xlabel=None, ylabel='Density (KDE)', figsize=None):
     r"""
     Plot histogram and kernel density of a bootstrapped
@@ -164,7 +163,7 @@ def density(d, empirical=None, title=None, ax=None, xlim=None,
     ----------
     d : dict
         A dict resulting from a (bootstrapped) richness
-        estimate (see copia.richness)
+        estimate (see copia.estimators)
     empirical : int (default = None)
         The empirical richness for the samples for which
         the true richness has been annotated. Will be ad-
@@ -193,7 +192,7 @@ def density(d, empirical=None, title=None, ax=None, xlim=None,
 
     sb.histplot(d['bootstrap'], color="C0", kde=True, ax=ax)
 
-    q_11, q_50, q_89 = stats.quantile(d['bootstrap'], [0.11, 0.5, 0.89], weights=None)
+    q_11, q_50, q_89 = copia.stats.quantile(d['bootstrap'], [0.11, 0.5, 0.89], weights=None)
     q_m, q_p = q_50 - q_11, q_89 - q_50
 
     ax.axvline(q_50, color='C3')
@@ -220,7 +219,7 @@ def density(d, empirical=None, title=None, ax=None, xlim=None,
     return ax
 
 
-def multi_kde(assemblages, ax=None, figsize=None,
+def multi_kde_plot(assemblages, ax=None, figsize=None,
               xlim=(0, 1), ylabel=None, xlabel=None):
     r"""
     Takes a dict of survival estimates for labeled assem-
@@ -232,7 +231,7 @@ def multi_kde(assemblages, ax=None, figsize=None,
     d : dict
         An assemblage dict, with labels (keys) and survival
         estimates for each assemblage (values) that come
-        from `copia.utils.survival_ratio()`.
+        from `copia.stats.survival_ratio()`.
     ax : plt.Axes (default = None)
         The ax to plot on or None if a new plt.Figure
         is required.
@@ -279,7 +278,7 @@ def survival_errorbar(survival, ax=None, figsize=None, xlabel=None,
     survival : dict
         An assemblage dict, with labels (keys) and survival
         estimates for each assemblage (values) that come
-        from `copia.utils.survival_ratio()`.
+        from `copia.stats.survival_ratio()`.
     ax : plt.Axes (default = None)
         The ax to plot on or None if a new plt.Figure
         is required.
@@ -345,9 +344,9 @@ def accumulation_curve(x, accumulation, minsample=None,
         counts) for each individual species.
     accumulation : dict
         The species accumulation curve, obtained from
-        `copia.richness.species_accumulation()`.
+        `copia.stats.species_accumulation()`.
     minsample : dict (default = None)
-        The result of a call to copia.richness.min_add\
+        The result of a call to copia.estimators.min_add\
         _sample(). If specified, a KDE for the bootstrap-
         ped values will be included.
     ax : plt.Axes (default = None)
@@ -409,7 +408,7 @@ def minsample_diagnostic_plot(x, diagnostics, max_x_ast=100, ax=None,
     r"""
     A diagnostic plot showing the detected intersection
     between v() and h() for checking whether the optimization
-    in `copia.richness.species_accumulation()` has converged.
+    in `copia.stats.species_accumulation()` has converged.
 
     Parameters
     ----------
@@ -442,7 +441,7 @@ def minsample_diagnostic_plot(x, diagnostics, max_x_ast=100, ax=None,
     x_ast = diagnostics['x*']
     sp = np.linspace(x_ast - 1, x_ast + 1, max_x_ast)
 
-    basics = utils.basic_stats(x)
+    basics = copia.stats.basic_stats(x)
     f1 = basics['f1']
     f2 = basics['f2']
 
@@ -473,10 +472,10 @@ def hill_plot(emp, est, q_min=0, q_max=3, step=0.1,
     ----------
     emp : dict
         The empirical Hill number profile, i.e. the
-        first dict returned by `copia.hill.hill_numbers()`.
+        first dict returned by `copia.diversity.hill_numbers()`.
     est : dict
         The estimated Hill number profile, i.e. the
-        second dict returned by `copia.hill.hill_numbers()`.
+        second dict returned by `copia.diversity.hill_numbers()`.
     q_min : float (default = 0)
         Minimum order to consider
     q_max : float (default = 3)
@@ -578,7 +577,7 @@ def evenness_plot(evennesses, q_min=0, q_max=3, step=0.1, ax=None,
     evennesses : dict
         An assemblage dict, with labels (keys) and evenness
         profiles for each assemblage (values) that come
-        from `copia.utils.evenness()`.
+        from `copia.diversity.evenness()`.
     q_min : float (default = 0)
         Minimum order to consider
     q_max : float (default = 3)
@@ -619,6 +618,6 @@ def evenness_plot(evennesses, q_min=0, q_max=3, step=0.1, ax=None,
     return ax
 
 
-__all__ = ['abundance_counts', 'abundance_histogram', 'density',
-           'multi_kde', 'survival_errorbar', 'accumulation_curve',
+__all__ = ['abundance_barplot', 'abundance_histogram', 'density_plot',
+           'multi_kde_plot', 'survival_errorbar', 'accumulation_curve',
            'minsample_diagnostic_plot', 'hill_plot', 'evenness_plot']

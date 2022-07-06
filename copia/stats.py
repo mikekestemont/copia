@@ -7,12 +7,26 @@ Functions based on the R code provided in
 - http://chao.stat.nthu.edu.tw/wordpress/paper/113_Rcode.txt, and
 - https://github.com/AnneChao/SpadeR/blob/master/R/Diversity_subroutine.R
 """
+from functools import partial
+
 import numpy as np
 import scipy.stats
+
 from scipy.special import gammaln
 from tqdm import tqdm
 
-import copia.utils as utils
+import copia.utils
+import copia.estimators
+
+
+def basic_stats(x):
+    assert isinstance(x, np.ndarray)
+    return {'f1': np.count_nonzero(x == 1),
+            'f2': np.count_nonzero(x == 2),
+            'f3': np.count_nonzero(x == 3),
+            'f4': np.count_nonzero(x == 4),
+            'S': (x > 0).sum(),
+            'n': x.sum()}
 
 
 def dbinom(x, size, prob):
@@ -71,12 +85,12 @@ def bootstrap(x, fn,
         upper endpoint of the specified confidence interval (`lci` and `uci`), 
         and the standard deviation of the richness index. 
     """
-    rnd = utils.check_random_state(seed)
+    rnd = copia.utils.check_random_state(seed)
     pro = fn(x) 
     p, n = bt_prob(x), x.sum()
     data_bt = rnd.multinomial(n, p, n_iter)
     
-    pool = utils.Parallel(n_jobs, n_iter, disable_pb=disable_pb)
+    pool = copia.utils.Parallel(n_jobs, n_iter, disable_pb=disable_pb)
     for row in data_bt:
         pool.apply_async(fn, args=(row,))
     pool.join()
@@ -168,4 +182,91 @@ def rarefaction_extrapolation(x, max_steps):
     return np.array([_sub(mi) for mi in range(1, max_steps)])
 
 
-__all__ = ['rarefaction_extrapolation', 'quantile', 'bootstrap']
+def survival_ratio(assemblage, method='chao1', **kwargs):
+    r"""
+    Calculates the survival ratio of an assemblage
+
+    Parameters
+    ----------
+    assemblage : 1D numpy array with shape (number of species)
+        An array representing the abundances (observed
+        counts) for each individual species.
+    method : str (default = "chao1")
+        The diversity estimator to apply (with CI set to true)
+    **kwargs : additional arguments passed to the estimator
+
+    Returns
+    -------
+    s : dict
+        The returned dict `s` will have the following fields:
+            - "survival" (float) = the unbiased survival estimate
+            - "lci" (float) = lower confidence interval
+            - "uci" (float) = upper confidence interval
+            - "bootstrap" (1D np.array) = bootstrap values obtained
+              for the survival estimate.
+        
+        In ecological terms, we calculate the survival ratio
+        as the sample completeness at order 0. For species
+        diversity, this estimate can be obtained as:
+        :math:`S_{obs}/ \hat{S}`. For minsample, we estimate
+        the survival ratio as: :math:`n / n + m`.
+
+        With:
+            - :math:`S_{obs}` = the observed diversity
+            - :math:`\hat{S}` = the bias-corrected diversity
+            - :math:`n` = the observed population size.
+            - :math:`m` = the estimated number of additional
+              samples required.
+
+    References
+    ----------
+    - A. Chao, et al., 'Quantifying sample completeness and comparing
+      diversities among assemblages', Ecological research (2020),
+      292-314.
+    - M. Kestemont & F. Karsdorp, 'Estimating the Loss of Medieval
+      Literature with an Unseen Species Model from Ecodiversity',
+      Computational Humanities Research (2020), 44-55.
+    """
+    method = method.lower()
+    
+    d = copia.estimators.diversity(assemblage, method=method, CI=True, **kwargs)
+    s = {}
+        
+    if method == 'minsample':
+        # normalize to proportions:
+        empirical = copia.estimators.diversity(assemblage, method='empirical', species=False)
+        s['survival'] = 1 / (d['richness'] / empirical)
+        if 'bootstrap' in d:
+            s['bootstrap'] = 1 / (d['bootstrap'] / empirical)
+        # note: upper and lower CI have to be swapped
+        s['lci'] = 1 / (d['uci'] / empirical)
+        s['uci'] = 1 / (d['lci'] / empirical)
+        
+    else:
+        # normalize to proportions:
+        empirical = copia.estimators.diversity(assemblage, method='empirical', species=True)
+        s['survival'] = empirical / d['richness']
+        if 'bootstrap' in d:
+            s['bootstrap'] = empirical / d['bootstrap']
+        # note: upper and lower CI have to be swapped
+        s['lci'] = empirical / d['uci']
+        s['uci'] = empirical / d['lci']
+
+    return s
+
+
+def species_accumulation(x, max_steps, n_iter=100):
+    steps = np.arange(1, max_steps)
+    interpolated = np.arange(1, max_steps) < x.sum()
+
+    accumulation = bootstrap(x, fn=partial(rarefaction_extrapolation,
+                                           max_steps=max_steps),
+                            n_iter=n_iter)
+    accumulation['interpolated'] = interpolated
+    accumulation['steps'] = steps
+    return accumulation
+
+
+
+
+__all__ = ['rarefaction_extrapolation', 'quantile', 'bootstrap', 'basic_stats']
