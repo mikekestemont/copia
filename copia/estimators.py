@@ -561,8 +561,8 @@ def _compute_fad(dm: np.ndarray, counts: np.ndarray) -> Dict[str, int]:
     F22 = np.sum(dm[counts == 2][:, counts == 2])
     F22 = max(F22, mean_distance)
 
-    assert round(F1p) == round(Fp1), (F1p, Fp1)
-    assert round(F2p) == round(Fp2), (F2p, Fp2)
+    # assert round(F1p) == round(Fp1), (F1p, Fp1)
+    # assert round(F2p) == round(Fp2), (F2p, Fp2)
 
     n = sum(counts)
     k = (n - 1) / n
