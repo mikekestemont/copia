@@ -149,6 +149,8 @@ def rarefaction_extrapolation(x, max_steps, step_size=1):
         be a positive integer, but can be smaller (rarefaction)
         or larger (extrapolation) than the empirical population
         size (:math:`n`).
+    step_size : int
+        Specify the increment to max_steps. Defaults to 1.
 
     Returns
     -------
@@ -255,12 +257,12 @@ def survival_ratio(assemblage, method='chao1', **kwargs):
     return s
 
 
-def species_accumulation(x, max_steps, n_iter=100):
-    steps = np.arange(1, max_steps)
+def species_accumulation(x, max_steps, step_size=1, n_iter=100):
+    steps = np.arange(1, max_steps, step_size)
     interpolated = np.arange(1, max_steps) < x.sum()
 
     accumulation = bootstrap(x, fn=partial(rarefaction_extrapolation,
-                                           max_steps=max_steps),
+                                           max_steps=max_steps, step_size=step_size),
                             n_iter=n_iter)
     accumulation['interpolated'] = interpolated
     accumulation['steps'] = steps
