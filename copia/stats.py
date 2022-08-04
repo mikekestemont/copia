@@ -135,7 +135,7 @@ def quantile(x, q, weights=None):
         return np.interp(q, cdf, x[idx]).tolist()
 
 
-def rarefaction_extrapolation(x, max_steps):
+def rarefaction_extrapolation(x, max_steps, step_size=1):
     r"""
     Species accumulation curve (calculation)
 
@@ -179,7 +179,7 @@ def rarefaction_extrapolation(x, max_steps):
             f0 = ((n - 1) / n * f1 * (f1 - 1) / 2) if f2 == 0 else ((n - 1) / n * f1**2 / 2 / f2)
             A = n * f0 / (n * f0 + f1)
             return S if f1 == 0 else (S + f0 * (1 - A**(m - n)))
-    return np.array([_sub(mi) for mi in range(1, max_steps)])
+    return np.array([_sub(mi) for mi in range(1, max_steps, step=step_size)])
 
 
 def survival_ratio(assemblage, method='chao1', **kwargs):
