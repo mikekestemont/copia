@@ -2,6 +2,7 @@
 """
 Bias-correcting richness estimators for abundance data
 """
+import math
 import warnings
 from functools import partial
 from typing import Dict
@@ -365,6 +366,36 @@ def jackknife(x, k=5, return_order=False, CI=False, conf=0.95):
         return d
     else:
         return jackest
+
+
+def chao_wor(x, q, CI=0.95):
+    x = x[x > 0]
+    n = x.sum() # sample size
+    t = len(x)  # number of unique items
+    # Convert the int64 to longs to ensure the numbers
+    # don't get too big in the variance calculation
+    f1 = (x == 1).sum().item() # number of singletons
+    f2 = (x == 2).sum().item() # number of doubletons
+    w = n / (n - 1)
+    r = q / (1 - q)
+    f0 = (f1 ** 2) / (2 * w * f2 + r * f1)
+
+    # compute sd
+    t1 = ((2 * w * f2 * (f0**2) + (f1**2) * f0) ** 2) / (f1 ** 5)
+    t2 = (4 * (w**2) * f2) * ((f0 / f1)**4)
+    var = f0 + t1 + t2
+
+    z = abs(stats.norm.ppf((1 - conf) / 2))
+    K = np.exp(z * np.sqrt(np.log(1 + var / f0 ** 2)))
+    lci, uci = t + f0 / K, t + f0 * K
+    return {
+        "f0": f0,
+        "V_est": t + f0
+        "var": var,
+        "sd": np.sqrt(var),
+        "lci": lci,
+        "uci": uci,
+    }
 
 
 def shared_richness(s1, s2, CI=False):
