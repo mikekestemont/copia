@@ -257,18 +257,16 @@ def survival_ratio(assemblage, method='chao1', **kwargs):
     return s
 
 
-def species_accumulation(x, max_steps, step_size=1, n_iter=100):
+def species_accumulation(x, max_steps, step_size=1, n_iter=100, n_jobs=1):
     steps = np.arange(1, max_steps, step_size)
-    interpolated = np.arange(1, max_steps) < x.sum()
+    interpolated = np.arange(1, max_steps, step_size) < x.sum()
 
     accumulation = bootstrap(x, fn=partial(rarefaction_extrapolation,
                                            max_steps=max_steps, step_size=step_size),
-                            n_iter=n_iter)
+                             n_iter=n_iter, n_jobs=n_jobs)
     accumulation['interpolated'] = interpolated
     accumulation['steps'] = steps
     return accumulation
-
-
 
 
 __all__ = ['rarefaction_extrapolation', 'quantile', 'bootstrap', 'basic_stats']
