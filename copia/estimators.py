@@ -390,7 +390,7 @@ def chao_wor(x, q, CI=0.95):
     lci, uci = t + f0 / K, t + f0 * K
     return {
         "f0": f0,
-        "V_est": t + f0
+        "V_est": t + f0,
         "var": var,
         "sd": np.sqrt(var),
         "lci": lci,
