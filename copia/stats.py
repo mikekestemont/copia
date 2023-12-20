@@ -7,6 +7,7 @@ Functions based on the R code provided in
 - http://chao.stat.nthu.edu.tw/wordpress/paper/113_Rcode.txt, and
 - https://github.com/AnneChao/SpadeR/blob/master/R/Diversity_subroutine.R
 """
+import math
 from functools import partial
 
 import numpy as np
@@ -35,7 +36,8 @@ def dbinom(x, size, prob):
 
 
 def lchoose(n, k):
-    return gammaln(n + 1) - gammaln(k + 1) - gammaln(n - k + 1)
+    return np.log(scipy.special.comb(n, k))
+    # return gammaln(n + 1) - gammaln(k + 1) - gammaln(n - k + 1)
 
 
 def bt_prob(x):
@@ -93,6 +95,67 @@ def bootstrap(x, fn,
     pool = copia.utils.Parallel(n_jobs, n_iter, disable_pb=disable_pb)
     for row in data_bt:
         pool.apply_async(fn, args=(row,))
+    pool.join()
+
+    bt_pro = np.array(pool.result())
+    pro_mean = bt_pro.mean(0)
+    
+    lci_pro = -np.quantile(bt_pro, (1 - conf) / 2, axis=0) + pro_mean
+    uci_pro = np.quantile(bt_pro, 1 - (1 - conf) / 2, axis=0) - pro_mean
+    sd_pro = np.std(bt_pro, axis=0)
+
+    bt_pro = pro_mean - bt_pro
+
+    lci_pro, uci_pro = pro - lci_pro, pro + uci_pro
+    bt_pro = pro - bt_pro
+
+    return {'richness': pro,
+            'lci': lci_pro,
+            'uci': uci_pro,
+            'std': sd_pro,
+            'bootstrap': bt_pro}
+
+
+def bt_prop_incidence(sampling_units, incidence_freqs):
+    incidence_freqs = incidence_freqs[incidence_freqs > 0]
+    U = incidence_freqs.sum()
+    Q1 = np.count_nonzero(incidence_freqs == 1)
+    Q2 = np.count_nonzero(incidence_freqs == 2)
+    if Q2 == 0:
+        Q0_hat = (sampling_units - 1) / sampling_units * Q1 * (Q1 - 1) / 2
+    else:
+        Q0_hat = (sampling_units - 1) / sampling_units * Q1**2 / 2 / Q2
+    A = 1
+    if Q1 > 0:
+        A = sampling_units * Q0 / (sampling_units * Q0 + Q1)
+    C = 1 - Q1 / U * A
+    Q0 = np.max(np.ceil(Q0_hat), 1)
+    tau = 0
+    if Q0_hat != 0:
+        tau = (U / sampling_units * (1 - C) /
+               sum(incidence_freqs / sampling_units *
+                   (1 - incidence_freqs / sampling_units) ** sampling_units))
+    p = (incidence_freqs / sampling_units *
+         (1 - tau * (1 - incidence_freqs / sampling_units)**sampling_units))
+    return np.hstack((p, np.array([p0 for i in range(Q0)])))
+
+
+def bootstrap_incidence_data(sampling_units,
+                             incidence_freqs,
+                             fn,
+                             n_iter=1000,
+                             conf=0.95,
+                             n_jobs=1,
+                             disable_pb=False,
+                             seed=None):
+    rnd = copia.utils.check_random_state(seed)
+    pro = fn(sampling_units, incidence_freqs) 
+    p = bt_prob_incidence(sampling_units, incidence_freqs)
+    data_bt = rnd.binomial(sampling_units, p, n_iter)
+    
+    pool = copia.utils.Parallel(n_jobs, n_iter, disable_pb=disable_pb)
+    for row in data_bt:
+        pool.apply_async(fn, args=(sampling_units, row,))
     pool.join()
 
     bt_pro = np.array(pool.result())
