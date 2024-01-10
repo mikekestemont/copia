@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Hill number calculations (including evenness calculations)
 """
@@ -8,7 +7,9 @@ import numpy as np
 from scipy.special import digamma
 from scipy.special import binom as choose
 
-import copia.stats
+from copia.bootstrap import bootstrap_abundance_data
+from copia.stats import lchoose
+from copia.data import AbundanceData
 
 
 def _chao_7a(t, n, f1, f2):
@@ -28,18 +29,18 @@ def _chao_7b(x, n, f1, p1):
 
 
 def _chao_7c(x, q, n):
-    A = np.sum(np.exp(copia.stats.lchoose(x, q) - copia.stats.lchoose(n, q)))
+    A = np.sum(np.exp(lchoose(x, q) - lchoose(n, q)))
     return np.nan if A == 0 else A**(1 / (1 - q))
 
 
 def _chao_7d(x, n, f1, p1, q):
     data, counts = np.unique(x, return_counts=True)
     term = np.zeros(data.shape[0])
-    zi = copia.stats.lchoose(n, data)
+    zi = lchoose(n, data)
     for i, z in enumerate(data):
         k = np.arange(n - z + 1)
         term[i] = np.sum(
-            choose(k - q, k) * np.exp(copia.stats.lchoose(n - k - 1, z - 1) - zi[i]))
+            choose(k - q, k) * np.exp(lchoose(n - k - 1, z - 1) - zi[i]))
     A = np.sum(counts * term)
     if f1 == 0 or p1 == 1:
         B = 0
@@ -50,16 +51,14 @@ def _chao_7d(x, n, f1, p1, q):
     return (A + B)**(1 / (1 - q))
 
 
-def estimated_hill(x, q_values):
+def compute_true_hill_numbers(ds: AbundanceData, q_values):
     """
     Estimated Hill numbers
     """
-    x, n = x[x > 0], x.sum()
-    t = x.shape[0]  # number of nonzero traits
-    f1 = np.count_nonzero(x == 1)
-    f2 = np.count_nonzero(x == 2)
 
     p1 = 1  # cf equation 6b
+    t, n, f1, f2 = ds.S_obs, ds.n, ds.f1, ds.f2
+    counts = ds.counts
     if f2 > 0:
         p1 = 2 * f2 / ((n - 1) * f1 + 2 * f2)
     elif f1 > 0:
@@ -71,19 +70,20 @@ def estimated_hill(x, q_values):
             return _chao_7a(t, n, f1, f2)
         # equation 7b
         elif q == 1:
-            return _chao_7b(x, n, f1, p1)
+            return _chao_7b(counts, n, f1, p1)
         elif abs(q - round(q)) == 0:
-            return _chao_7c(x, q, n)
+            return _chao_7c(counts, q, n)
         else:
-            return _chao_7d(x, n, f1, p1, q)
+            return _chao_7d(counts, n, f1, p1, q)
 
     return np.array([sub(q) for q in q_values])
 
 
-def empirical_hill(x, q_values):
+def compute_empirical_hill_numbers(ds: AbundanceData, q_values):
     """
     Empirical Hill numbers
     """
+    x = ds.counts
     p = x[x > 0] / x.sum()
 
     def sub(q):
@@ -93,26 +93,28 @@ def empirical_hill(x, q_values):
     return np.array([sub(q) for q in q_values])
 
 
-def hill_numbers(x, q_min=0, q_max=3, step=0.1,
-                 n_iter=1000, conf=0.95, n_jobs=1, seed=None):
-    x = np.array(x, dtype=np.int64)
-    q = np.arange(q_min, q_max + step, step)
+def compute_hill_numbers(ds: AbundanceData, q_min=0, q_max=3, steps=100,
+                         estimate_unseen=False, CI=False, n_iter=1000,
+                         conf=0.89, n_jobs=1, seed=None):
+    q = np.linspace(q_min, q_max, num=steps)
+    if not estimate_unseen:
+        hill_function = compute_empirical_hill_numbers
+    else:
+        hill_function = compute_true_hill_numbers
 
-    emp = copia.stats.bootstrap(x, fn=partial(empirical_hill, q_values=q),
-                    n_iter=n_iter,
-                    conf=conf,
-                    n_jobs=n_jobs,
-                    seed=seed)
+    if not CI:
+        hill_numbers = hill_function(ds, q)
+    else:
+        hill_numbers = bootstrap_abundance_data(
+                ds, fn=partial(hill_function, q_values=q),
+                n_iter=n_iter,
+                conf=conf,
+                n_jobs=n_jobs,
+                seed=seed)
+    return hill_numbers
 
-    est = copia.stats.bootstrap(x, fn=partial(estimated_hill, q_values=q),
-                    n_iter=n_iter,
-                    conf=conf,
-                    n_jobs=n_jobs,
-                    seed=seed)
-    return emp, est
-
-
-def evenness(d, q_min=0, q_max=3, step=0.1, E=3):
+# TODO: EIGENLIJK EEN TRANSFORMATIE EN GEEN ESTIMATIE
+def compute_evenness(d: dict, q_min=0, q_max=3, step=0.1, E=3):
     r"""
     Evenness: calculation of a (normalized) evenness profile
 
@@ -200,7 +202,8 @@ def evenness(d, q_min=0, q_max=3, step=0.1, E=3):
         evenness = (1 - 1 / d['richness']) / (1 - 1 / d['richness'][0])
     elif E == 5:
         evenness = np.log(d['richness']) / np.log(d['richness'][0])
+    else:
+        raise ValueError("Evenness type not implemented")
     return evenness
 
 
-__all__ = ['estimated_hill', 'empirical_hill', 'hill_numbers', 'evenness']

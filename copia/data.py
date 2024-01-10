@@ -1,10 +1,27 @@
-import datetime
-
+import numpy as np
 import pandas as pd
-import xarray as xr
 
-from . import __version__
+from dataclasses import dataclass
 
+
+@dataclass(slots=True, frozen=True)
+class CopiaData:
+    S_obs: int
+    f1: int
+    f2: int
+    n: int
+    counts: np.ndarray
+
+
+@dataclass(slots=True, frozen=True)
+class AbundanceData(CopiaData):
+    pass
+
+
+@dataclass(slots=True, frozen=True)
+class IncidenceData(CopiaData):
+    T: int
+    
 
 def to_abundance_counts(data, input_type="observations", index_column=None,
                         count_column=None):
@@ -161,7 +178,7 @@ def to_incidence_counts(
             "input_type must be either 'observation_matrix', 'observation_list', or 'counts'"
         )
 
-    if input_type == "observations_matrix":
+    if input_type == "observation_matrix":
         match data:
             case np.ndarray():
                 counts = pd.DataFrame(data).apply(np.count_nonzero, axis=1)
@@ -203,24 +220,14 @@ def to_incidence_counts(
     return counts
 
 
-def meta_information(**attrs):
-    default_attrs = {
-        "created_at": datetime.datetime.utcnow().isoformat(),
-        "arviz_version": __version__,
-    }
-    default_attrs.update(attrs)
-    return default_attrs
-
-
 def to_copia_dataset(
     observations,
     data_type="abundance",
-    input_type=None,
+    input_type="observations",
     index_column=None,
     count_column=None,
     location_column=None,
-    title=None,
-    description=None):
+    n_sampling_units=None):
     """
     Converts the given observations into a Copia dataset, accommodating both
     abundance and incidence data.
@@ -248,9 +255,8 @@ def to_copia_dataset(
         A description for the dataset.
 
     Returns:
-    An xarray.Dataset
-        The dataset contains counts, original observations, and various statistics
-        relevant for Copia analysis.
+    An copia.CopiaData
+        The dataset contains counts, and various statistics relevant for Copia analysis.
 
     Example Usage:
     >>> df = pd.DataFrame(
@@ -265,33 +271,28 @@ def to_copia_dataset(
     """    
     match data_type.lower():
         case "abundance":
-            items, counts = to_abundance_counts(
+            counts = to_abundance_counts(
                 observations, input_type, index_column, count_column)
-            n = counts.sum()
         case "incidence":
-            items, counts = to_incidence_counts(
+            counts = to_incidence_counts(
                 observations, input_type, index_column, location_column, count_column)
-            n = n_sampling_units # must be supplied when data_type == "incidence"
+        case _:
+            raise TypeError(
+                f"Data type {data_type} is invalid")
+            
+    n = counts.sum()
     
-
+    counts = counts.values
     # Compute some basic statistics that are used in many of copia's functions
     counts = counts[counts > 0]
     f1 = np.count_nonzero(counts == 1)
     f2 = np.count_nonzero(counts == 2)
     S_obs = counts.shape[0]
 
-    # The dataset consists of a number of DataArrays and constants
-    counts = xr.DataArray(counts, coords={"types": items})
-
-    ds = xr.Dataset(
-        data_vars={
-            "counts": counts,
-            "observations": observations.to_xarray(),
-            "f1": f1,
-            "f2": f2,
-            "n": n,
-            "S_obs": S_obs,
-        },
-        attrs=meta_information(title=title, description=description),
-    )
+    if data_type.strip().lower() == 'incidence':
+        ds = IncidenceData(
+            S_obs=S_obs, f1=f1, f2=f2, T=n_sampling_units, n=n, counts=counts)
+    else:
+        ds = AbundanceData(S_obs=S_obs, f1=f1, f2=f2, n=n, counts=counts)
+    
     return ds

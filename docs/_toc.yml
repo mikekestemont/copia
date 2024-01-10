@@ -1,0 +1,8 @@
+format: jb-book
+root: intro
+parts:
+  - caption: Notebooks
+    chapters:
+      - file: data
+      - file: estimation
+      

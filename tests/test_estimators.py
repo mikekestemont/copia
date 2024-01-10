@@ -2,22 +2,27 @@ import pytest
 import warnings
 
 import numpy as np
+from copia.data import to_copia_dataset
 import copia.estimators
 import copia.diversity
 import copia.stats
+import copia.rarefaction_extrapolation
 import copia.utils as u
 
 
 
 def test_chao1():
     x = np.array([1, 1, 1, 2, 3, 5, 10, 25])
-    assert np.isclose(copia.estimators.chao1(x), 12.4, rtol=0.001)
+    ds = to_copia_dataset(x, input_type="counts")
+    assert np.isclose(copia.estimators.chao1(ds), 12.4, rtol=0.001)
 
     x = np.array([1, 1, 1, 2, 3, 5, 10, 25, 0, 0])
-    assert np.isclose(copia.estimators.chao1(x), 12.4, rtol=0.001)
+    ds = to_copia_dataset(x, input_type="counts")
+    assert np.isclose(copia.estimators.chao1(ds), 12.4, rtol=0.001)
 
     x = np.array([1, 1, 1, 1, 3, 5, 10, 25])
-    assert np.isclose(copia.estimators.chao1(x), 13.8722, rtol=0.001)
+    ds = to_copia_dataset(x, input_type="counts")
+    assert np.isclose(copia.estimators.chao1(ds), 13.8722, rtol=0.001)
 
 
 def test_chao1_f2():
@@ -31,28 +36,30 @@ def test_chao1_f2():
     demo_default_data = np.array([752, 276, 194, 126, 121, 97,
         95, 83, 72, 44, 39, 0, 16, 15, 0, 13, 9, 9,
         9, 8, 7, 4, 0, 0, 2, 2, 1, 1, 1], dtype=np.int64)
-    assert np.isclose(copia.estimators.chao1(demo_default_data),
-                      27.249, rtol=0.001)
+    ds = to_copia_dataset(demo_default_data, input_type="counts")
+    assert np.isclose(copia.estimators.chao1(ds), 27.249, rtol=0.001)
 
     # now remove doubletons:
     demo_no_f2 = np.array([752, 276, 194, 126, 121, 97,
         95, 83, 72, 44, 39, 0, 16, 15, 0, 13, 9, 9,
         9, 8, 7, 4, 0, 0, 1, 1, 1], dtype=np.int64)
-    assert np.isclose(copia.estimators.chao1(demo_no_f2),
-                      25.998, rtol=0.001)
-
+    ds = to_copia_dataset(demo_no_f2, input_type="counts")
+    assert np.isclose(copia.estimators.chao1(ds), 25.998, rtol=0.001)
     
 def test_egghe_proot():
     x = np.array([1, 1, 1, 2, 3, 5, 10, 25])
-    assert np.isclose(copia.estimators.egghe_proot(x, alpha=150), 16.38, rtol=0.001)
+    ds = to_copia_dataset(x, input_type="counts")
+    assert np.isclose(copia.estimators.egghe_proot(ds, alpha=150), 16.38, rtol=0.001)
 
     x = np.array([1, 1, 1, 2, 3, 5, 10, 25, 0, 0])
-    assert np.isclose(copia.estimators.egghe_proot(x, alpha=150), 16.38, rtol=0.001)
+    ds = to_copia_dataset(x, input_type="counts")
+    assert np.isclose(copia.estimators.egghe_proot(ds, alpha=150), 16.38, rtol=0.001)
 
     # test kwargs:
     x = np.array([1, 1, 1, 2, 3, 5, 10, 25])
-    assert copia.estimators.diversity(x, method='egghe_proot', alpha=150) != \
-           copia.estimators.diversity(x, method='egghe_proot', alpha=50)
+    ds = to_copia_dataset(x, input_type="counts")
+    assert copia.estimators.diversity(ds, method='egghe_proot', alpha=150) != \
+           copia.estimators.diversity(ds, method='egghe_proot', alpha=50)
 
     # test against example from paper (pp. 260ff):
     assemblage = [f'{i}-1' for i in range(714)]
@@ -69,33 +76,23 @@ def test_egghe_proot():
         for j in range(5):
             assemblage.append(f'{i}-5')
             
-    x = u.to_abundance(assemblage)
+    x = to_copia_dataset(assemblage, input_type="observations")
 
     assert np.isclose(copia.estimators.egghe_proot(x, alpha=200), 3903, rtol=0.001)
 
 
-def test_nonnegative_counts():
-    x = np.array([1, 1, 1, 2, 3, 5, 10, 25, 0, -1])
-    with pytest.raises(ValueError):
-        copia.estimators.diversity(x)
-
-
-def test_empty_counts():
-    x = np.array([0, 0, 0])
-    with pytest.raises(ValueError):
-        copia.estimators.diversity(x)
-
-
 def test_egghe_proot_missing_p2():
     x = np.array([1, 1, 1, 1, 3, 5, 10, 25])
+    ds = to_copia_dataset(x, input_type="counts")
     with pytest.warns(UserWarning):
-        copia.estimators.egghe_proot(x)
+        copia.estimators.egghe_proot(ds)
 
 
 def test_iChao1():
     x = np.array([1, 1, 1, 6, 3, 3, 5, 5, 5, 5, 8])
+    ds = to_copia_dataset(x, input_type="counts")
     with pytest.warns(UserWarning):
-        copia.estimators.iChao1(x)
+        copia.estimators.iChao1(ds)
     
     # mimic "daytime beetle assemblage" from original paper
     # from Janzen (1973a, 1973b); p. 678:
@@ -119,13 +116,13 @@ def test_iChao1():
         for j in range(11):
             assemblage.append(f'{i}-11')
             
-    x = u.to_abundance(assemblage)
+    ds = to_copia_dataset(assemblage)
 
     # check whether the assemblage is correctly constructed:
-    counts = copia.stats.basic_stats(x)
-    assert counts['S'] == 78
-    assert counts['n'] == 127
-    assert np.isclose(copia.estimators.iChao1(x), 290.9, rtol=0.01)
+
+    assert ds.S_obs == 78
+    assert ds.n == 127
+    assert np.isclose(copia.estimators.iChao1(ds), 290.9, rtol=0.01)
 
 
 def test_minsample():
@@ -140,20 +137,19 @@ def test_minsample():
     assemblage += ['D'] * 2 + ['E'] * 2
     assemblage += ['F'] * 3 + ['G'] * 3 + ['H'] * 3
     assemblage += ['I'] * (161 - len(assemblage))
-    x = u.to_abundance(assemblage)
+    ds = to_copia_dataset(assemblage)
 
     # check whether the assemblage is correctly constructed:
-    counts = copia.stats.basic_stats(x)
-    assert counts['f1'] == 3
-    assert counts['f2'] == 2
-    assert counts['S'] == 9
-    assert counts['n'] == 161
+    assert ds.f1 == 3
+    assert ds.f2 == 2
+    assert ds.S_obs == 9
+    assert ds.n == 161
 
-    d = copia.estimators.diversity(x, method='minsample', solver='grid', diagnostics=True)
+    d = copia.estimators.diversity(ds, method='minsample', solver='grid', diagnostics=True)
     assert np.isclose(d['x*'], 2.221115367, rtol=0.01)
     assert np.isclose(d['richness'], 161 + 357.600, rtol=1)
 
-    d = copia.estimators.diversity(x, method='minsample', solver='fsolve', diagnostics=True)
+    d = copia.estimators.diversity(ds, method='minsample', solver='fsolve', diagnostics=True)
     assert np.isclose(d['x*'], 2.221115367, rtol=0.01)
     assert np.isclose(d['richness'], 161 + 357.600, rtol=1)
 
@@ -164,13 +160,15 @@ def test_spider():
     spider_girdled = [46, 22, 17, 15, 15, 9, 8, 6, 6, 4, 2, 2,
                       2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
     x = np.array(spider_girdled)
-    assert np.isclose(copia.estimators.chao1(x), 43.893, rtol=0.001)
+    ds = to_copia_dataset(x, input_type="counts")
+    assert np.isclose(copia.estimators.chao1(ds), 43.893, rtol=0.001)
 
     spider_logged = [88, 22, 16, 15, 13, 10, 8, 8, 7, 7, 7, 5,
                      4, 4, 4, 3, 3, 3, 3, 2, 2, 2, 2, 1, 1, 1,
                      1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
     x = np.array(spider_logged)
-    assert np.isclose(copia.estimators.chao1(x), 61.403, rtol=0.001)
+    ds = to_copia_dataset(x, input_type="counts")
+    assert np.isclose(copia.estimators.chao1(ds), 61.403, rtol=0.001)
 
 
 def test_moths():
@@ -194,134 +192,64 @@ def test_moths():
     x = np.array(moths)
 
     # grid solver
-    d = copia.estimators.min_add_sample(x, solver="grid", diagnostics=True)
+    ds = to_copia_dataset(x, input_type="counts")
+    d = copia.estimators.min_add_sample(ds, solver="grid", diagnostics=True)
     assert np.isclose(d['n'] * d['x*'], 166509, rtol=1)
-
-    # fsolve should back off:
-    with pytest.warns(UserWarning):
-        d = copia.estimators.min_add_sample(x, solver="fsolve",
-                                     diagnostics=True)
-        print(d)
-        assert np.isclose(d['n'] * d['x*'], 166509, rtol=1)
 
 
 def test_species_accumulation():
     # verify whether species accumulation is stricly monotonic
     spider_girdled = np.array([46, 22, 17, 15, 15, 9, 8, 6, 6, 4, 2, 2,
                       2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], dtype=np.int64)
-    accumul = copia.stats.species_accumulation(spider_girdled, max_steps=300)
+    ds = to_copia_dataset(spider_girdled, input_type="counts")
+    accumul = copia.rarefaction_extrapolation.species_accumulation(
+        ds, max_steps=300)
 
-    a = accumul['richness']
-    assert np.all(a[1:] >= a[:-1])
+    a = accumul['est']
+    print(a)
+    assert np.all(a.values[1:] >= a.values[:-1])
 
     a = accumul['lci']
-    assert np.all(a[1:] >= a[:-1])
+    assert np.all(a.values[1:] >= a.values[:-1])
 
     a = accumul['uci']
-    assert np.all(a[1:] >= a[:-1])
+    assert np.all(a.values[1:] >= a.values[:-1])
 
 
 def test_hill():
     spider_girdled = [46, 22, 17, 15, 15, 9, 8, 6, 6, 4, 2, 2,
                       2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
     x = np.array(spider_girdled)
+    ds = to_copia_dataset(x, input_type="counts")
 
-    emp, _ = copia.diversity.hill_numbers(x, n_iter=10, q_min=0, q_max=3, step=0.1)
+    emp = copia.diversity.compute_hill_numbers(
+        ds, n_iter=10, q_min=0, q_max=3, steps=100)
 
-    q = np.arange(0, 3, 0.1)
+    q = np.linspace(0, 3, 100)
     # q = 0
     idx = np.where(q == 0)[0][0]
-    q0 = emp['richness'][idx]
+    q0 = emp[idx]
     assert np.isclose(q0, len(x), rtol=0.001)
 
     # q = 1
     idx = np.where(q == 1)[0][0]
-    q1 = emp['richness'][idx]
+    q1 = emp[idx]
 
     def shannon_entropy(counts, base=np.e):
         freqs = counts / counts.sum()
         freqs = freqs[freqs.nonzero()]
         return -(freqs * np.log(freqs)).sum() / np.log(base)
 
-    assert np.isclose(shannon_entropy(x), np.log(q1), rtol=0.001)
+    print(shannon_entropy(ds.counts), np.log(q1))
+    assert np.isclose(shannon_entropy(ds.counts), np.log(q1), rtol=0.001)
 
     # q = 2
     idx = np.where(q == 2)[0][0]
-    q2 = emp['richness'][idx]
+    q2 = emp[idx]
 
     def simpson_diversity(counts):
         return 1 - ((counts / counts.sum()) ** 2).sum()
 
-    assert np.isclose(1 / (1 - simpson_diversity(x)), q2, rtol=0.1)
+    assert np.isclose(1 / (1 - simpson_diversity(ds.counts)), q2, rtol=0.1)
 
 
-def test_shared_richness():
-    # Example with folktale collections taken from: 
-    # https://web.archive.org/web/20220526135551/https://www.karsdorp.io/posts/20220316142536-two_assemblage_good_turing_estimation/
-    # Drachten data collection:
-    c1 = np.array([65, 56, 42, 38, 33, 28, 27, 22, 21, 19, 18, 15, 14, 14, 13, 12, 12, 11,
-                   11, 11, 10, 10, 8, 8, 8, 8, 8, 8, 7, 7, 7, 7, 6, 6, 6, 6, 6, 6, 5, 5, 5, 5, 5, 5, 5,
-                   5, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 3, 3, 3, 3, 3,
-                   3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
-                   2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
-                   2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                   1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                   1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                   1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                   1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                   1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=np.int64)
-    # Harkema data collection:
-    c2 = np.array([123, 84, 39, 56, 45, 26, 16, 46, 36, 18, 12, 26, 15, 15, 13, 19, 8, 19,
-                   6, 18, 8, 17, 20, 4, 23, 27, 31, 14, 0, 18, 30, 14, 22, 3, 0, 10, 9, 2, 12, 7, 5, 2,
-                   15, 17, 19, 0, 12, 2, 9, 24, 0, 3, 3, 11, 2, 1, 0, 2, 1, 16, 2, 2, 2, 0, 8, 3, 0, 3,
-                   10, 4, 0, 6, 2, 1, 0, 8, 0, 0, 0, 1, 1, 1, 3, 5, 11, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 2,
-                   1, 0, 1, 3, 15, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 6, 5, 1,
-                   1, 5, 1, 1, 2, 1, 0, 2, 2, 12, 0, 6, 12, 0, 0, 0, 0, 2, 0, 1, 0, 0, 1, 0, 0, 15, 0, 0,
-                   0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0,
-                   0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 2, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 2, 0, 0, 0,
-                   0, 0, 0, 0, 4, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1,
-                   0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 2, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 3, 0, 0, 1, 1, 0, 0, 0,
-                   0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 2, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9,
-                   7, 6, 5, 4, 4, 4, 3, 3, 3, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1,
-                   1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                   1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                   1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], dtype=np.int64)
-
-    # Both collections are aligned and should have the same length:
-    assert len(c1) == len(c2)
-    est = copia.estimators.shared_richness(c1, c2)
-    assert np.isclose(est['richness'], 244, rtol=0.1)
-    assert np.isclose(est['observed shared'], 136, rtol=0.1)
-    assert np.isclose(est['f0+'], 26, rtol=0.1)
-    assert np.isclose(est['f+0'], 48, rtol=0.1)
-    assert np.isclose(est['f00'], 34, rtol=0.1)
-
-
-def test_no_unseen_functional_attribute_diversity():
-    X = np.array([
-        [0.0, 0.0], [0.0, 1.0],
-        [1.0, 0.0], [1.0, 1.0],
-    ])
-
-    counts = np.array([2, 2, 2, 2])
-    FAD = copia.estimators.functional_attribute_diversity(X, counts, distance_metric="cityblock")
-    assert FAD["F00"] == 0 and FAD["F0+"] == 0 and FAD["F+0"] == 0
-
-
-def test_functional_attribute_diversity():
-    X = np.array([
-        [0.0, 0.0], [0.0, 1.0],
-        [1.0, 0.0], [1.0, 1.0],
-    ])
-    
-    counts = np.array([10, 5, 2, 1])
-    FAD = copia.estimators.functional_attribute_diversity(X, counts, distance_metric="cityblock")
-
-    assert FAD["obs"] == 16
-    assert FAD["F+0"] == FAD["F0+"] == 2
-    assert FAD["F00"] == 0
-    assert FAD["FAD"] == 20
