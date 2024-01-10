@@ -8,11 +8,11 @@ build:
   jobs:
     pre_build:
       # Generate on-the-fly Sphinx configuration from Jupyter Book's _config.yml
-      - "jupyter-book config sphinx docs2/"
+      - "jupyter-book config sphinx docs/"
 
 python:
    install:
-   - requirements: docs2/requirements.txt
+   - requirements: docs/requirements.txt
 
 formats:
   - pdf
