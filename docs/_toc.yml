@@ -5,4 +5,5 @@ parts:
     chapters:
       - file: data
       - file: estimation
+      - file: rarefaction
       

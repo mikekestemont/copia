@@ -4,7 +4,7 @@ Various utility functions.
 import multiprocessing as mp
 
 import numpy as np
-import tqdm
+from tqdm.auto import tqdm
 
 
 def valid_count_data(x):
@@ -26,7 +26,7 @@ class Parallel:
     def __init__(self, n_workers, n_tasks, disable_pb=False):
         self.pool = mp.Pool(n_workers)
         self._results = []
-        self._pb = tqdm.tqdm(total=n_tasks, disable=disable_pb)
+        self._pb = tqdm(total=n_tasks, disable=disable_pb)
 
     def apply_async(self, fn, args=None):
         self.pool.apply_async(fn, args=args, callback=self._completed)
