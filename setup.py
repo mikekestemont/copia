@@ -8,7 +8,7 @@ with open(os.path.join(directory, "README.md"), encoding="utf-8") as f:
 
 setup(
     name='copia',
-    version='0.1.4',
+    version='0.1.5',
     packages=find_packages(),
     url='https://github.com/mikekestemont/copia',
     license='CC-BY',
@@ -17,12 +17,11 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     install_requires=[
-        'numpy>=1.19.0',
-        'scipy>=1.5.1',
-        'matplotlib>=3.3.2',
-        'seaborn>=0.11.0',
-        'pandas>=1.1.2',
-        'tqdm>=4.48.0',
-        'pytest>=6.2.2'
+        'pytest>=7.4', 
+        'scipy>=1.11',
+        'numpy>=1.24',
+        'pandas>=2.1',
+        'matplotlib>=3.8',
+        'tqdm>=4.64'
     ]
 )
