@@ -1,24 +1,13 @@
-# -*- coding: utf-8 -*-
 """
 Various utility functions.
 """
-from collections import Counter
 import multiprocessing as mp
 
 import numpy as np
-import tqdm
+from tqdm.auto import tqdm
 
 
-def to_abundance(species):
-    return np.array(tuple(Counter(species).values()),
-                    dtype=np.int64)
-
-def bincount(x):
-    _, x = np.unique(x.flatten(), return_inverse=True)
-    return np.bincount(x)
-
-
-def is_valid_abundance_array(x):
+def valid_count_data(x):
     if (x < 0).any():
         msg = "Elements of `x` should be strictly non-negative"
         raise ValueError(msg)
@@ -37,7 +26,7 @@ class Parallel:
     def __init__(self, n_workers, n_tasks, disable_pb=False):
         self.pool = mp.Pool(n_workers)
         self._results = []
-        self._pb = tqdm.tqdm(total=n_tasks, disable=disable_pb)
+        self._pb = tqdm(total=n_tasks, disable=disable_pb)
 
     def apply_async(self, fn, args=None):
         self.pool.apply_async(fn, args=args, callback=self._completed)
@@ -76,4 +65,4 @@ def check_random_state(seed):
     )
 
 
-__all__ = ['to_abundance', 'Parallel', 'check_random_state', 'bincount']
+__all__ = ['Parallel', 'check_random_state']

@@ -1,0 +1,9 @@
+format: jb-book
+root: intro
+parts:
+  - caption: Tutorial
+    chapters:
+      - file: data
+      - file: estimation
+      - file: rarefaction
+      
