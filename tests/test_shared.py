@@ -55,11 +55,71 @@ def test_shared():
     print(s1)
     print(s2)
 
-    without_ci = copia.estimators.shared_richness(s1, s2, CI=False)
-    print(without_ci)
+    # test point estimates:
+    without_ci = copia.estimators.chao_shared(s1, s2, CI=False)
 
     assert int(without_ci['total']) == 389
     assert int(without_ci['unobs_shared']) == 139
     assert int(without_ci['f0+']) == 48
     assert int(without_ci['f+0']) == 68
     assert int(without_ci['f00']) == 22
+
+    # test the confidence intervals:
+    results = copia.estimators.chao_shared(s1, s2, CI=True, conf=.95,
+                                               n_iter=100000, seed=573861)
+    
+    # format the results for inspection:
+    data = {
+        'name': ['total', 'obs_shared', 'unobs_shared', 'f0+', 'f+0', 'f00'],
+        'Est': [
+            results['total'],
+            results['obs_shared'],
+            results['unobs_shared'],
+            results['f0+'],
+            results['f+0'],
+            results['f00'],
+        ]
+    }
+    
+    if 'CI' in results:
+        data['se'] = [
+            results['se']['total'],
+            results['se']['obs_shared'],
+            results['se']['unobs_shared'],
+            results['se']['f0+'],
+            results['se']['f+0'],
+            results['se']['f00'],
+        ]
+        data['95% LCL'] = [
+            results['CI']['total']['lower'],
+            results['CI']['obs_shared']['lower'],
+            results['CI']['unobs_shared']['lower'],
+            results['CI']['f0+']['lower'],
+            results['CI']['f+0']['lower'],
+            results['CI']['f00']['lower'],
+        ]
+        data['95% UCL'] = [
+            results['CI']['total']['upper'],
+            results['CI']['obs_shared']['upper'],
+            results['CI']['unobs_shared']['upper'],
+            results['CI']['f0+']['upper'],
+            results['CI']['f+0']['upper'],
+            results['CI']['f00']['upper'],
+        ]
+    
+    df = pd.DataFrame(data)
+    print(df)
+
+    # Add assertions to check if point estimates are within CIs
+    for idx, row in df.iterrows():
+        name = row['name']
+        estimate = row['Est']
+        lcl = row['95% LCL']
+        ucl = row['95% UCL']
+        
+        assert lcl <= estimate <= ucl, (
+            f"CI check failed for {name}: "
+            f"estimate ({estimate:.2f}) not in "
+            f"[{lcl:.2f}, {ucl:.2f}]"
+        )
+        

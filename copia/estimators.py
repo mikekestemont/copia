@@ -8,7 +8,8 @@ import numpy as np
 import scipy.stats
 
 from scipy.optimize import fsolve
-from copia.bootstrap import bootstrap_abundance_data, bootstrap_incidence_data
+from copia.bootstrap import bootstrap_abundance_data, bootstrap_incidence_data,\
+    bootstrap_shared_species
 from copia.data import AbundanceData, IncidenceData
 
 import copia.stats as stats
@@ -352,7 +353,7 @@ def chao_wor(ds: AbundanceData, q, CI=0.95):
     }
 
 
-def shared_richness(ds1: AbundanceData, ds2: AbundanceData, CI=False):
+def chao_shared(ds1: AbundanceData, ds2: AbundanceData, CI=False, **kwargs):
     r"""
     Estimate (shared) unseen species in two assemblages
 
@@ -366,8 +367,18 @@ def shared_richness(ds1: AbundanceData, ds2: AbundanceData, CI=False):
         (Should have the same length as `s1`.)
     CI : bool (default = False)
         Whether to return the confidence interval for the estimates
-    conf : float (default = 0.95)
-        Confidence level for the confidence interval (e.g. 0.95).
+    **kwargs : dict
+        Additional arguments passed to the bootstrap function:
+        - conf : float (default = 0.95)
+            Confidence level for intervals
+        - n_iter : int (default = 1000)
+            Number of bootstrap iterations
+        - n_jobs : int (default = 1)
+            Number of parallel jobs
+        - seed : int or None
+            Random seed
+        - disable_pb : bool (default = False)
+            Whether to disable progress bar
 
     Returns
     -------
@@ -400,39 +411,71 @@ def shared_richness(ds1: AbundanceData, ds2: AbundanceData, CI=False):
       posts/20220316142536-two_assemblage_good_turing_estimation/
     """
 
-    assert len(ds1.counts) == len(ds2.counts)
-    if not CI:
-        n1, n2 = ds1.n, ds2.n
-        s1_counts, s2_counts = ds1.counts, ds2.counts
-
+    s1, s2 = ds1.counts, ds2.counts
+    assert len(s1) == len(s2)
+    
+    def _estimate_shared(s1, s2):
+        n1 = np.sum(s1)
+        n2 = np.sum(s2)
+        
         # Compute f0+
-        f1p = ((s1_counts == 1) & (s2_counts >= 1)).sum()
-        f2p = ((s1_counts == 2) & (s2_counts >= 1)).sum()
+        f1p = np.sum((s1 == 1) & (s2 > 0))
+        f2p = np.sum((s1 == 2) & (s2 > 0))
         f0p = ((n1 - 1) / n1) * (f1p**2 / (2 * max(f2p, 1))) if f1p > 0 else 0
 
         # Compute f+0
-        fp1 = ((s1_counts >= 1) & (s2_counts == 1)).sum()
-        fp2 = ((s1_counts >= 1) & (s2_counts == 2)).sum()
+        fp1 = np.sum((s1 > 0) & (s2 == 1))
+        fp2 = np.sum((s1 > 0) & (s2 == 2))
         fp0 = ((n2 - 1) / n2) * (fp1**2 / (2 * max(fp2, 1))) if fp1 > 0 else 0
 
         # Compute f00
-        f11 = ((s1_counts == 1) & (s2_counts == 1)).sum()
-        f22 = ((s1_counts == 2) & (s2_counts == 2)).sum()
+        f11 = np.sum((s1 == 1) & (s2 == 1))
+        f22 = np.sum((s1 == 2) & (s2 == 2))
         f00 = ((n1 - 1) / n1) * ((n2 - 1) / n2) * (f11**2 / (4 * max(f22, 1))) if f11 > 0 else 0
 
-        obs_shared = ((s1_counts > 0) & (s2_counts > 0)).sum()
+        obs_shared = np.sum((s1 > 0) & (s2 > 0))
         S = obs_shared + f0p + fp0 + f00
 
-        return {
-            "total": S,
-            "obs_shared": obs_shared,
-            "unobs_shared": f0p + fp0 + f00,
-            "f0+": f0p,
-            "f+0": fp0,
-            "f00": f00,
-        }
-    else:
-        raise NotImplementedError('No CI available yet for this estimator.')
+        return np.array([S, obs_shared, f0p, fp0, f00])
+    
+    # Point estimates:
+    estimates = _estimate_shared(s1, s2)
+    
+    result = {
+        "total": estimates[0],
+        "obs_shared": estimates[1],
+        "unobs_shared": sum(estimates[2:]),
+        "f0+": estimates[2],
+        "f+0": estimates[3],
+        "f00": estimates[4]
+    }
+    
+    if CI:
+        est_mean, lci, uci, est_sd = bootstrap_shared_species(
+            s1, s2, _estimate_shared,
+            **kwargs
+        )
+        
+        result.update({
+            "CI": {
+                "total": {"lower": lci[0], "upper": uci[0]},
+                "obs_shared": {"lower": lci[1], "upper": uci[1]},  # Different from total
+                "unobs_shared": {"lower": sum(lci[2:]), "upper": sum(uci[2:])},
+                "f0+": {"lower": lci[2], "upper": uci[2]},
+                "f+0": {"lower": lci[3], "upper": uci[3]},
+                "f00": {"lower": lci[4], "upper": uci[4]}
+            },
+            "se": {
+                "total": est_sd[0],
+                "obs_shared": est_sd[1],  # Different from total
+                "unobs_shared": np.sqrt(np.sum(est_sd[2:]**2)),
+                "f0+": est_sd[2],
+                "f+0": est_sd[3],
+                "f00": est_sd[4]
+            }
+        })
+    
+    return result
 
 
 def min_add_sample(ds: AbundanceData, solver="grid", search_space=(0, 100, 1e6),
@@ -541,7 +584,7 @@ ESTIMATORS = {
     "jackknife": jackknife,
     "minsample": min_add_sample,
     "ace": ace,
-    "shared_richness": shared_richness,
+    "chao_shared": chao_shared,
 }
 
 
@@ -566,7 +609,7 @@ def diversity(
             - 'egghe_proot'
             - 'jackknife'
             - 'minsample'
-            - 'shared_richness'
+            - 'chao_shared'
             - 'empirical' (same as None)
     **kwargs : additional parameters passed to selected method
 
@@ -576,8 +619,7 @@ def diversity(
     specified method to compute the confidence intervals around
     the central estimate etc. For the Jackknife procedure, the
     CI is calculated analytically and no bootstrap values will
-    be included in the returned dict. For chao1_shared no confidence
-    intervals have been implemented yet.
+    be included in the returned dict.
 
     Returns
     -------
@@ -592,7 +634,7 @@ def diversity(
 
     method = method.lower()
 
-    if method == "shared_richness":
+    if method == "chao_shared":
         estimate = ESTIMATORS[method](ds, ds2, CI=CI)
     elif CI and method != 'jackknife':
         if isinstance(ds, AbundanceData):
@@ -616,4 +658,4 @@ def diversity(
 
 __all__ = ['chao1', 'iChao1', 'egghe_proot',
            'ace', 'jackknife', 'min_add_sample',
-           'diversity', 'shared_richness']
+           'diversity', 'chao_shared']
