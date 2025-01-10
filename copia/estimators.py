@@ -373,10 +373,13 @@ def shared_richness(ds1: AbundanceData, ds2: AbundanceData, CI=False):
     -------
     results : dict
         Results dictionary, with the following fields:
-        - "richness": the estimated total number of species
+        - "total": the estimated total number of species
                       across both assemblages                      
-        - "observed shared": the observed number of shared 
+        - "obs_shared": the observed number of shared 
                       species across both assemblages
+        - "unobs_shared": the estimated (unobserved) number
+                      of shared species across both assemblages,
+                      or the sum of `f0+`, `f+0`, and `f00`
         - "f0+": the number of unseen species unobserved,
                       missing in `s1`, but present in `s2`
         - "f+0": the number of unseen species unobserved,
@@ -384,12 +387,14 @@ def shared_richness(ds1: AbundanceData, ds2: AbundanceData, CI=False):
         - "f00": the number of species unobserved and
                       and missing from both `s1` and s2`
 
+        No integer rounding is performed.
+
     References
     -------
     - Chao, Anne, et al. 2017. 'Deciphering the Enigma of Undetected
       Species, Phylogenetic, and Functional Diversity Based on Good-Turing
       Theory.' Ecology (2017), 2914-2929.
-    - Code taken from: Karsdorp, F, 'Estimating Unseen Shared Cultural Diversity' (2022).
+    - Code based on: Karsdorp, F, 'Estimating Unseen Shared Cultural Diversity' (2022).
       https://web.archive.org/web/20220526135551/https://www.karsdorp.io/\
       posts/20220316142536-two_assemblage_good_turing_estimation/
     """
@@ -418,8 +423,12 @@ def shared_richness(ds1: AbundanceData, ds2: AbundanceData, CI=False):
         S = obs_shared + f0p + fp0 + f00
 
         return {
-            "est": round(S),
-            "obs": obs_shared,
+            "total": S,
+            "obs_shared": obs_shared,
+            "unobs_shared": f0p + fp0 + f00,
+            "f0+": f0p,
+            "f+0": fp0,
+            "f00": f00,
         }
     else:
         raise NotImplementedError('No CI available yet for this estimator.')
