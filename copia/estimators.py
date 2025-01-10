@@ -387,7 +387,8 @@ def shared_richness(ds1: AbundanceData, ds2: AbundanceData, CI=False):
         - "f00": the number of species unobserved and
                       and missing from both `s1` and s2`
 
-        No integer rounding is performed.
+        No integer rounding is performed. The codeaccounts for
+        edge cases where counts of rare species is zero.
 
     References
     -------
@@ -404,20 +405,20 @@ def shared_richness(ds1: AbundanceData, ds2: AbundanceData, CI=False):
         n1, n2 = ds1.n, ds2.n
         s1_counts, s2_counts = ds1.counts, ds2.counts
 
-        # Compute f_{0, +}
+        # Compute f0+
         f1p = ((s1_counts == 1) & (s2_counts >= 1)).sum()
         f2p = ((s1_counts == 2) & (s2_counts >= 1)).sum()
-        f0p = ((n1 - 1) / n1) * ((f1p ** 2) / (2 * f2p))
+        f0p = ((n1 - 1) / n1) * (f1p**2 / (2 * max(f2p, 1))) if f1p > 0 else 0
 
-        # Compute f_{+, 0}
+        # Compute f+0
         fp1 = ((s1_counts >= 1) & (s2_counts == 1)).sum()
         fp2 = ((s1_counts >= 1) & (s2_counts == 2)).sum()
-        fp0 = ((n2 - 1) / n2) * ((fp1 ** 2) / (2 * fp2))
+        fp0 = ((n2 - 1) / n2) * (fp1**2 / (2 * max(fp2, 1))) if fp1 > 0 else 0
 
-        # Compute f_{0, 0}
+        # Compute f00
         f11 = ((s1_counts == 1) & (s2_counts == 1)).sum()
         f22 = ((s1_counts == 2) & (s2_counts == 2)).sum()
-        f00 = ((n1 - 1) / n1) * ((n2 - 1) / n2) * ((f11 ** 2) / (4 * f22))
+        f00 = ((n1 - 1) / n1) * ((n2 - 1) / n2) * (f11**2 / (4 * max(f22, 1))) if f11 > 0 else 0
 
         obs_shared = ((s1_counts > 0) & (s2_counts > 0)).sum()
         S = obs_shared + f0p + fp0 + f00

@@ -60,3 +60,6 @@ def test_shared():
 
     assert int(without_ci['total']) == 389
     assert int(without_ci['unobs_shared']) == 139
+    assert int(without_ci['f0+']) == 48
+    assert int(without_ci['f+0']) == 68
+    assert int(without_ci['f00']) == 22
