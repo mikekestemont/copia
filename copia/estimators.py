@@ -418,6 +418,19 @@ def chao_shared(ds1: AbundanceData, ds2: AbundanceData, CI=False, **kwargs):
           of rare species categories (e.g. $f_2$) might be zero.
         - The CIs are clamped to the positive realm, so that
           both upper and lower CIs are guarenteed to be >=0.
+    
+    Warning
+    -------
+    Make sure that the counts in `s1` and `s2` are still properly aligned!
+    If that is not the case, the estimates will not be valid. The function
+    to_copia_dataset() can help: set remove_zeros=0. Example:
+
+    > from copia.data import to_copia_dataset
+    > s1 = to_copia_dataset(trees, data_type='abundance', input_type='counts',
+                          index_column='species', count_column='s1', remove_zeros=False)
+    > s2 = to_copia_dataset(trees, data_type='abundance', input_type='counts',
+                          index_column='species', count_column='s2', remove_zeros=False)
+    
 
     Confidence intervals
     -------
