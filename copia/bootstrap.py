@@ -5,6 +5,7 @@ from scipy import stats
 from copia.data import to_copia_dataset
 import copia.utils
 
+
 def bt_prob_abundance(ds):
     x, n, f1, f2 = ds.counts, ds.n, ds.f1, ds.f2
     C = 1 - f1 / n * (((n - 1) * f1 / ((n - 1) * f1 + 2 * f2)) if f2 > 0 else
@@ -241,6 +242,7 @@ def bt_prob_shared(s1, s2):
     prob2 = prob2 * (n2 / n)
     
     return prob1, prob2, n1, n2
+
 
 def bootstrap_shared_species(s1, s2, fn, n_iter=1000, conf=0.95, **kwargs):
     """Bootstrap procedure for shared species estimation."""

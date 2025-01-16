@@ -67,6 +67,7 @@ def test_shared():
     # test the confidence intervals:
     results = copia.estimators.chao_shared(s1, s2, CI=True, conf=.95,
                                                n_iter=100000, seed=573861)
+    print(results)
     
     # format the results for inspection:
     data = {
@@ -110,16 +111,26 @@ def test_shared():
     df = pd.DataFrame(data)
     print(df)
 
-    # Add assertions to check if point estimates are within CIs
     for idx, row in df.iterrows():
         name = row['name']
         estimate = row['Est']
         lcl = row['95% LCL']
         ucl = row['95% UCL']
         
+        # check whether point estimates are within CIs:
         assert lcl <= estimate <= ucl, (
             f"CI check failed for {name}: "
             f"estimate ({estimate:.2f}) not in "
             f"[{lcl:.2f}, {ucl:.2f}]"
         )
-        
+
+        # check whether CIs are >=0:
+        assert lcl >= 0, (
+            f"CI check failed for {name}, LCL: "
+            f"estimate ({lcl:.2f}) < 0"
+        )
+        assert ucl >= 0, (
+            f"CI check failed for {name}, UCL: "
+            f"estimate ({ucl:.2f})"
+        )
+                  
