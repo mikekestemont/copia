@@ -227,7 +227,8 @@ def to_copia_dataset(
     index_column=None,
     count_column=None,
     location_column=None,
-    n_sampling_units=None):
+    n_sampling_units=None,
+    remove_zeros=True):
     """
     Converts the given observations into a Copia dataset, accommodating both
     abundance and incidence data.
@@ -253,7 +254,9 @@ def to_copia_dataset(
         The title for the dataset.
     description : str, optional
         A description for the dataset.
-
+    remove_zeros : bool, optional (default = True)
+        Whether to remove zero counts from ds.counts (set to False for aligned datasets)
+    
     Returns:
     An copia.CopiaData
         The dataset contains counts, and various statistics relevant for Copia analysis.
@@ -284,10 +287,12 @@ def to_copia_dataset(
     
     counts = counts.values
     # Compute some basic statistics that are used in many of copia's functions
-    counts = counts[counts > 0]
+    if remove_zeros:
+        counts = counts[counts > 0]
+
     f1 = np.count_nonzero(counts == 1)
     f2 = np.count_nonzero(counts == 2)
-    S_obs = counts.shape[0]
+    S_obs = counts[counts > 0].shape[0]
 
     if data_type.strip().lower() == 'incidence':
         ds = IncidenceData(

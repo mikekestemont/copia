@@ -1,7 +1,10 @@
 import numpy as np
 import pandas as pd
+from scipy import stats
+
 from copia.data import to_copia_dataset
 import copia.utils
+
 
 def bt_prob_abundance(ds):
     x, n, f1, f2 = ds.counts, ds.n, ds.f1, ds.f2
@@ -142,3 +145,140 @@ def bootstrap_incidence_data(ds,
 
     return out
 
+
+def bt_prob_shared(s1, s2):
+    """Calculate bootstrap probabilities for shared species estimation."""
+    # Remove species with zero total abundance
+    mask = (s1 + s2) > 0
+    s1, s2 = s1[mask], s2[mask]
+    
+    # Initial computations
+    n = np.sum(s1) + np.sum(s2)  # Joint total
+    n1, n2 = np.sum(s1), np.sum(s2)
+    
+    # Compute f0j (total unseen)
+    joint = s1 + s2
+    f1j = np.sum(joint == 1)
+    f2j = np.sum(joint == 2)
+    f0j = ((n - 1) / n * f1j**2 / (2 * f2j)) if f2j > 0 else ((n - 1) / n * f1j * (f1j - 1) / 2)
+    f0j_star = int(np.ceil(f0j))
+    
+    # Extend arrays with zeros
+    s1_ext = np.concatenate([s1, np.zeros(f0j_star)])
+    s2_ext = np.concatenate([s2, np.zeros(f0j_star)])
+    
+    # Calculate f01 and f02
+    f11 = np.sum(s1 == 1)
+    f21 = np.sum(s1 == 2)
+    f12 = np.sum(s2 == 1)
+    f22 = np.sum(s2 == 2)
+    
+    f01 = ((n1 - 1) / n1 * f11**2 / (2 * f21)) if f21 > 0 else ((n1 - 1) / n1 * f11 * (f11 - 1) / 2)
+    f02 = ((n2 - 1) / n2 * f12**2 / (2 * f22)) if f22 > 0 else ((n2 - 1) / n2 * f12 * (f12 - 1) / 2)
+    
+    f01_star = int(np.ceil(f01))
+    f02_star = int(np.ceil(f02))
+    
+    # Adjust f0*_star based on available zeros
+    zero1 = np.sum(s1_ext == 0)
+    zero2 = np.sum(s2_ext == 0)
+    f01_star = min(zero1, f01_star)
+    f02_star = min(zero2, f02_star)
+    
+    # Calculate C1 and C2
+    if f21 == 0:
+        C1 = 1 - f11/n1 * (n1-1) * (f11-1) / ((n1-1) * (f11-1) + 2)
+    else:
+        C1 = 1 - f11/n1 * (n1-1) * f11 / ((n1-1) * f11 + 2 * f21)
+        
+    if f22 == 0:
+        C2 = 1 - f12/n2 * (n2-1) * (f12-1) / ((n2-1) * (f12-1) + 2)
+    else:
+        C2 = 1 - f12/n2 * (n2-1) * f12 / ((n2-1) * f12 + 2 * f22)
+    
+    # Calculate probabilities
+    p1_term = s1/n1 * (1 - s1/n1)**n1
+    p2_term = s2/n2 * (1 - s2/n2)**n2
+    
+    lambda1 = (1 - C1) / np.sum(p1_term)
+    lambda2 = (1 - C2) / np.sum(p2_term)
+    
+    # Probabilities for seen species
+    pseen1 = s1/n1 * (1 - lambda1 * (1 - s1/n1)**n1)
+    pseen2 = s2/n2 * (1 - lambda2 * (1 - s2/n2)**n2)
+    
+    # Probabilities for unseen species
+    punseen1 = (1 - C1) / f01_star if f01_star > 0 else 0
+    punseen2 = (1 - C2) / f02_star if f02_star > 0 else 0
+    
+    # Create extended probability arrays
+    prob1 = np.zeros_like(s1_ext, dtype=float)
+    prob2 = np.zeros_like(s2_ext, dtype=float)
+    
+    # Assign seen probabilities
+    prob1[:len(s1)] = pseen1
+    prob2[:len(s2)] = pseen2
+    
+    # Randomly assign unseen probabilities
+    zero_indices1 = np.where(s1_ext == 0)[0]
+    zero_indices2 = np.where(s2_ext == 0)[0]
+    
+    if f01_star == 1 and len(zero_indices1) >= 1:
+        idx1 = np.random.choice(zero_indices1, 1)
+        prob1[idx1] = punseen1
+    elif f01_star > 1:
+        idx1 = np.random.choice(zero_indices1, f01_star, replace=False)
+        prob1[idx1] = punseen1
+        
+    if f02_star == 1 and len(zero_indices2) >= 1:
+        idx2 = np.random.choice(zero_indices2, 1)
+        prob2[idx2] = punseen2
+    elif f02_star > 1:
+        idx2 = np.random.choice(zero_indices2, f02_star, replace=False)
+        prob2[idx2] = punseen2
+    
+    # Final scaling
+    prob1 = prob1 * (n1 / n)
+    prob2 = prob2 * (n2 / n)
+    
+    return prob1, prob2, n1, n2
+
+
+def bootstrap_shared_species(s1, s2, fn, n_iter=1000, conf=0.95, **kwargs):
+    """Bootstrap procedure for shared species estimation."""
+    rnd = np.random.RandomState(kwargs.get('seed', None))
+    z_score = stats.norm.ppf((1 + conf) / 2)
+    
+    # Get bootstrap probabilities and generate samples
+    pseen1, pseen2, n1, n2 = bt_prob_shared(s1, s2)
+    
+    # Get original estimates for reference
+    orig_est = fn(s1, s2)
+    shared_obs = orig_est[1]
+    
+    estimates = []
+    for _ in range(n_iter):
+        boot_s1 = rnd.multinomial(int(n1), pseen1/np.sum(pseen1))
+        boot_s2 = rnd.multinomial(int(n2), pseen2/np.sum(pseen2))
+        result = fn(boot_s1, boot_s2)
+        estimates.append(result)
+    
+    estimates = np.array(estimates)
+    est_mean = estimates.mean(0)
+    est_sd = estimates.std(0, ddof=1)
+    
+    # Initialize CI arrays
+    lci = np.zeros_like(orig_est)
+    uci = np.zeros_like(orig_est)
+    
+    # For total shared (index 0):
+    var_ratio = est_sd[1]**2 / (est_mean[1] - shared_obs)**2 
+    R = np.exp(z_score * np.sqrt(np.log(1 + var_ratio)))
+    lci[0] = shared_obs + (orig_est[0] - shared_obs) / R
+    uci[0] = shared_obs + (orig_est[0] - shared_obs) * R
+    
+    # For other components: symmetric intervals
+    lci[1:] = orig_est[1:] - z_score * est_sd[1:]
+    uci[1:] = orig_est[1:] + z_score * est_sd[1:]
+    
+    return est_mean, lci, uci, est_sd

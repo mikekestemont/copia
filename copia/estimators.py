@@ -8,7 +8,8 @@ import numpy as np
 import scipy.stats
 
 from scipy.optimize import fsolve
-from copia.bootstrap import bootstrap_abundance_data, bootstrap_incidence_data
+from copia.bootstrap import bootstrap_abundance_data, bootstrap_incidence_data,\
+    bootstrap_shared_species
 from copia.data import AbundanceData, IncidenceData
 
 import copia.stats as stats
@@ -352,77 +353,180 @@ def chao_wor(ds: AbundanceData, q, CI=0.95):
     }
 
 
-def shared_richness(ds1: AbundanceData, ds2: AbundanceData, CI=False):
+def chao_shared(ds1: AbundanceData, ds2: AbundanceData, CI=False, **kwargs):
     r"""
     Estimate (shared) unseen species in two assemblages
 
     Parameters
     ----------
-    s1 : 1D Numpy array representing the observed counts for
-        each individual species in the *first* assemblage.
-        (Should have the same length as `s2`.)
-    s2 : 1D Numpy array representing the observed counts for
-        each individual species in the *second* assemblage.
-        (Should have the same length as `s1`.)
-    CI : bool (default = False)
+    s1 : 1D Numpy array 
+        Representing the observed counts for each individual species in the 
+        *first* assemblage. (Should have the same length as `s2`.)
+    s2 : 1D Numpy array
+        Representing the observed counts for each individual species in the 
+        *second* assemblage. (Should have the same length as `s1`.)
+    CI : bool, default=False
         Whether to return the confidence interval for the estimates
-    conf : float (default = 0.95)
-        Confidence level for the confidence interval (e.g. 0.95).
+        **kwargs : dict
+        Additional arguments passed to the bootstrap function:
+        - conf : float, default=0.95
+            Confidence level for intervals
+        - n_iter : int, default=1000
+            Number of bootstrap iterations
+        - n_jobs : int, default=1
+            Number of parallel jobs
+        - seed : int or None
+            Random seed
+        - disable_pb : bool, default=False
+            Whether to disable progress bar
 
     Returns
     -------
     results : dict
-        Results dictionary, with the following fields:
-        - "richness": the estimated total number of species
-                      across both assemblages                      
-        - "observed shared": the observed number of shared 
-                      species across both assemblages
-        - "f0+": the number of unseen species unobserved,
-                      missing in `s1`, but present in `s2`
-        - "f+0": the number of unseen species unobserved,
-                      missing in `s2`, but present in `s1`
-        - "f00": the number of species unobserved and
-                      and missing from both `s1` and s2`
+        If CI=False:
+            Dictionary containing point estimates for:
+            - total : float
+                The estimated total number of species across both assemblages
+            - obs_shared : float
+                The observed number of shared species across both assemblages
+            - unobs_shared : float
+                The estimated (unobserved) number of shared species across both
+                assemblages, or the sum of `f0+`, `f+0`, and `f00`
+            - f0+ : float
+                The number of unseen species unobserved, missing in `s1`,
+                but present in `s2`
+            - f+0 : float
+                The number of unseen species unobserved, missing in `s2`,
+                but present in `s1`
+            - f00 : float
+                The number of species unobserved and missing from both `s1` and `s2`
+
+        If CI=True:
+            Dictionary containing all point estimates as above, plus two additional keys:
+            - CI : dict
+                Contains confidence intervals for each estimate, with structure:
+                {estimate_name: {'lower': float, 'upper': float}}
+                for each of the estimates listed above
+            - se : dict
+                Contains standard errors for each estimate, with structure:
+                {estimate_name: float} for each of the estimates listed above
+
+    Notes
+    -------
+        - No integer rounding is performed on the estimates.
+        - The code accounts for edge cases where the counts
+          of rare species categories (e.g. $f_2$) might be zero.
+        - The CIs are clamped to the positive realm, so that
+          both upper and lower CIs are guarenteed to be >=0.
+    
+    Warning
+    -------
+    Make sure that the counts in `s1` and `s2` are still properly aligned!
+    If that is not the case, the estimates will not be valid. The function
+    to_copia_dataset() can help: set remove_zeros=0. Example:
+
+    > from copia.data import to_copia_dataset
+    > s1 = to_copia_dataset(trees, data_type='abundance', input_type='counts',
+                          index_column='species', count_column='s1', remove_zeros=False)
+    > s2 = to_copia_dataset(trees, data_type='abundance', input_type='counts',
+                          index_column='species', count_column='s2', remove_zeros=False)
+    
+
+    Confidence intervals
+    -------
+    The calculation of the CIs is based on a bootstrap appraoch. For the total
+    shared, a log-transformation is used to obtain CI, so that LCL
+    is greater than the observed shared species; see Chao et al. (1987,
+    Biometrics, Eq. 12) for the transformation and formula. The resulting CI
+    is generally asymmetric. However, such a transformation cannot be applied
+    to the CI construction for f0+, f+0 and f00 because these three values
+    are not observable in data. Thus for these three terms, CIs are still
+    based on a symmetric interval. Thus, the lower CI may become negative due
+    to data sparsity (i.e., mainly due to large s.e.). This function truncates
+    any negative values in the CIs. The calculation for the CIs is to be credited
+    to Anne Chao.
 
     References
     -------
-    - Chao, Anne, et al. 2017. 'Deciphering the Enigma of Undetected
+    - Chao, Anne, Estimating the population size for capture-recapture data
+      with unequal catchability. Biometrics (1987), 783-791.
+    - Chao, Anne, et al. 'Deciphering the Enigma of Undetected
       Species, Phylogenetic, and Functional Diversity Based on Good-Turing
       Theory.' Ecology (2017), 2914-2929.
-    - Code taken from: Karsdorp, F, 'Estimating Unseen Shared Cultural Diversity' (2022).
+    - Code based on: Karsdorp, F, 'Estimating Unseen Shared Cultural Diversity' (2022).
       https://web.archive.org/web/20220526135551/https://www.karsdorp.io/\
-      posts/20220316142536-two_assemblage_good_turing_estimation/
+      posts/20220316142536-two_assemblage_good_turing_estimation
     """
 
-    assert len(ds1.counts) == len(ds2.counts)
-    if not CI:
-        n1, n2 = ds1.n, ds2.n
-        s1_counts, s2_counts = ds1.counts, ds2.counts
+    s1, s2 = ds1.counts, ds2.counts
+    assert len(s1) == len(s2)
+    
+    def _estimate_shared(s1, s2):
+        n1 = np.sum(s1)
+        n2 = np.sum(s2)
+        
+        # Compute f0+
+        f1p = np.sum((s1 == 1) & (s2 > 0))
+        f2p = np.sum((s1 == 2) & (s2 > 0))
+        f0p = ((n1 - 1) / n1) * (f1p**2 / (2 * max(f2p, 1))) if f1p > 0 else 0
 
-        # Compute f_{0, +}
-        f1p = ((s1_counts == 1) & (s2_counts >= 1)).sum()
-        f2p = ((s1_counts == 2) & (s2_counts >= 1)).sum()
-        f0p = ((n1 - 1) / n1) * ((f1p ** 2) / (2 * f2p))
+        # Compute f+0
+        fp1 = np.sum((s1 > 0) & (s2 == 1))
+        fp2 = np.sum((s1 > 0) & (s2 == 2))
+        fp0 = ((n2 - 1) / n2) * (fp1**2 / (2 * max(fp2, 1))) if fp1 > 0 else 0
 
-        # Compute f_{+, 0}
-        fp1 = ((s1_counts >= 1) & (s2_counts == 1)).sum()
-        fp2 = ((s1_counts >= 1) & (s2_counts == 2)).sum()
-        fp0 = ((n2 - 1) / n2) * ((fp1 ** 2) / (2 * fp2))
+        # Compute f00
+        f11 = np.sum((s1 == 1) & (s2 == 1))
+        f22 = np.sum((s1 == 2) & (s2 == 2))
+        f00 = ((n1 - 1) / n1) * ((n2 - 1) / n2) * (f11**2 / (4 * max(f22, 1))) if f11 > 0 else 0
 
-        # Compute f_{0, 0}
-        f11 = ((s1_counts == 1) & (s2_counts == 1)).sum()
-        f22 = ((s1_counts == 2) & (s2_counts == 2)).sum()
-        f00 = ((n1 - 1) / n1) * ((n2 - 1) / n2) * ((f11 ** 2) / (4 * f22))
-
-        obs_shared = ((s1_counts > 0) & (s2_counts > 0)).sum()
+        obs_shared = np.sum((s1 > 0) & (s2 > 0))
         S = obs_shared + f0p + fp0 + f00
 
-        return {
-            "est": round(S),
-            "obs": obs_shared,
-        }
-    else:
-        raise NotImplementedError('No CI available yet for this estimator.')
+        return np.array([S, obs_shared, f0p, fp0, f00])
+    
+    # Point estimates:
+    estimates = _estimate_shared(s1, s2)
+    result = {
+        "total": estimates[0],
+        "obs_shared": estimates[1],
+        "unobs_shared": sum(estimates[2:]),
+        "f0+": estimates[2],
+        "f+0": estimates[3],
+        "f00": estimates[4]
+    }
+    
+    if CI:
+        est_mean, lci, uci, est_sd = bootstrap_shared_species(
+            s1, s2, _estimate_shared,
+            **kwargs
+        )
+        
+        result.update({
+            "CI": {
+                "total": {"lower": lci[0], "upper": uci[0]},
+                "obs_shared": {"lower": lci[1], "upper": uci[1]},
+                "unobs_shared": {"lower": sum(lci[2:]), "upper": sum(uci[2:])},
+                "f0+": {"lower": lci[2], "upper": uci[2]},
+                "f+0": {"lower": lci[3], "upper": uci[3]},
+                "f00": {"lower": lci[4], "upper": uci[4]}
+            },
+            "se": {
+                "total": est_sd[0],
+                "obs_shared": est_sd[1],
+                "unobs_shared": np.sqrt(np.sum(est_sd[2:]**2)),
+                "f0+": est_sd[2],
+                "f+0": est_sd[3],
+                "f00": est_sd[4]
+            }
+        })
+
+        # ensure CIs >= 0:
+        for key in ['f00', 'f0+', 'f+0']:
+            result['CI'][key]['lower'] = max(0, result['CI'][key]['lower'])
+            result['CI'][key]['upper'] = max(0, result['CI'][key]['upper'])
+    
+    return result
 
 
 def min_add_sample(ds: AbundanceData, solver="grid", search_space=(0, 100, 1e6),
@@ -531,7 +635,7 @@ ESTIMATORS = {
     "jackknife": jackknife,
     "minsample": min_add_sample,
     "ace": ace,
-    "shared_richness": shared_richness,
+    "chao_shared": chao_shared,
 }
 
 
@@ -556,7 +660,7 @@ def diversity(
             - 'egghe_proot'
             - 'jackknife'
             - 'minsample'
-            - 'shared_richness'
+            - 'chao_shared'
             - 'empirical' (same as None)
     **kwargs : additional parameters passed to selected method
 
@@ -566,8 +670,7 @@ def diversity(
     specified method to compute the confidence intervals around
     the central estimate etc. For the Jackknife procedure, the
     CI is calculated analytically and no bootstrap values will
-    be included in the returned dict. For chao1_shared no confidence
-    intervals have been implemented yet.
+    be included in the returned dict.
 
     Returns
     -------
@@ -582,7 +685,7 @@ def diversity(
 
     method = method.lower()
 
-    if method == "shared_richness":
+    if method == "chao_shared":
         estimate = ESTIMATORS[method](ds, ds2, CI=CI)
     elif CI and method != 'jackknife':
         if isinstance(ds, AbundanceData):
@@ -606,4 +709,4 @@ def diversity(
 
 __all__ = ['chao1', 'iChao1', 'egghe_proot',
            'ace', 'jackknife', 'min_add_sample',
-           'diversity', 'shared_richness']
+           'diversity', 'chao_shared']
