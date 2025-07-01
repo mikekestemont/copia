@@ -244,6 +244,27 @@ def bt_prob_shared(s1, s2):
     return prob1, prob2, n1, n2
 
 
+def percentile_ci(estimates, conf=0.95):
+    """
+    Calculate percentile-based confidence intervals from bootstrap estimates.
+    
+    Parameters:
+    estimates: array of bootstrap estimates (n_iter x n_components)
+    conf: confidence level (default 0.95)
+    
+    Returns:
+    lci, uci: lower and upper confidence intervals
+    """
+    alpha = 1 - conf
+    lower_p = (alpha / 2) * 100
+    upper_p = (1 - alpha / 2) * 100
+    
+    lci = np.percentile(estimates, lower_p, axis=0)
+    uci = np.percentile(estimates, upper_p, axis=0)
+    
+    return lci, uci
+
+
 def bootstrap_shared_species(s1, s2, fn, n_iter=1000, conf=0.95, **kwargs):
     """Bootstrap procedure for shared species estimation."""
     rnd = np.random.RandomState(kwargs.get('seed', None))
@@ -271,14 +292,16 @@ def bootstrap_shared_species(s1, s2, fn, n_iter=1000, conf=0.95, **kwargs):
     lci = np.zeros_like(orig_est)
     uci = np.zeros_like(orig_est)
     
-    # For total shared (index 0):
-    var_ratio = est_sd[1]**2 / (est_mean[1] - shared_obs)**2 
-    R = np.exp(z_score * np.sqrt(np.log(1 + var_ratio)))
-    lci[0] = shared_obs + (orig_est[0] - shared_obs) / R
-    uci[0] = shared_obs + (orig_est[0] - shared_obs) * R
+    # # For total shared (index 0):
+    # var_ratio = est_sd[1]**2 / (est_mean[1] - shared_obs)**2 
+    # R = np.exp(z_score * np.sqrt(np.log(1 + var_ratio)))
+    # lci[0] = shared_obs + (orig_est[0] - shared_obs) / R
+    # uci[0] = shared_obs + (orig_est[0] - shared_obs) * R
     
-    # For other components: symmetric intervals
-    lci[1:] = orig_est[1:] - z_score * est_sd[1:]
-    uci[1:] = orig_est[1:] + z_score * est_sd[1:]
+    # # For other components: symmetric intervals
+    # lci[1:] = orig_est[1:] - z_score * est_sd[1:]
+    # uci[1:] = orig_est[1:] + z_score * est_sd[1:]
+
+    lci, uci = percentile_ci(estimates, conf)
     
     return est_mean, lci, uci, est_sd
