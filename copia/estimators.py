@@ -359,93 +359,51 @@ def chao_shared(ds1: AbundanceData, ds2: AbundanceData, CI=False, **kwargs):
 
     Parameters
     ----------
-    s1 : 1D Numpy array 
-        Representing the observed counts for each individual species in the 
-        *first* assemblage. (Should have the same length as `s2`.)
-    s2 : 1D Numpy array
-        Representing the observed counts for each individual species in the 
-        *second* assemblage. (Should have the same length as `s1`.)
+    ds1 : AbundanceData
+        First assemblage abundance data
+    ds2 : AbundanceData  
+        Second assemblage abundance data
     CI : bool, default=False
-        Whether to return the confidence interval for the estimates
-        **kwargs : dict
+        Whether to return the bootstrap-based confidence interval for the estimates
+    **kwargs : dict
         Additional arguments passed to the bootstrap function:
         - conf : float, default=0.95
             Confidence level for intervals
         - n_iter : int, default=1000
             Number of bootstrap iterations
-        - n_jobs : int, default=1
-            Number of parallel jobs
         - seed : int or None
-            Random seed
-        - disable_pb : bool, default=False
-            Whether to disable progress bar
+            Random seed for reproducibility
 
     Returns
     -------
     results : dict
-        If CI=False:
-            Dictionary containing point estimates for:
-            - total : float
-                The estimated total number of species across both assemblages
-            - obs_shared : float
-                The observed number of shared species across both assemblages
-            - unobs_shared : float
-                The estimated (unobserved) number of shared species across both
-                assemblages, or the sum of `f0+`, `f+0`, and `f00`
-            - f0+ : float
-                The number of unseen species unobserved, missing in `s1`,
-                but present in `s2`
-            - f+0 : float
-                The number of unseen species unobserved, missing in `s2`,
-                but present in `s1`
-            - f00 : float
-                The number of species unobserved and missing from both `s1` and `s2`
+        Dictionary containing estimates for:
+        - total : float
+            The estimated total number of species across both assemblages
+        - obs_shared : float
+            The observed number of shared species across both assemblages
+        - unobs_shared : float
+            The estimated (unobserved) number of shared species across both
+            assemblages, or the sum of `f0+`, `f+0`, and `f00`
+        - f0+ : float
+            The number of unseen species missing in ds1, but present in ds2
+        - f+0 : float
+            The number of unseen species missing in ds2, but present in ds1
+        - f00 : float
+            The number of species unobserved and missing from both assemblages
 
-        If CI=True:
-            Dictionary containing all point estimates as above, plus two additional keys:
-            - CI : dict
-                Contains confidence intervals for each estimate, with structure:
-                {estimate_name: {'lower': float, 'upper': float}}
-                for each of the estimates listed above
-            - se : dict
-                Contains standard errors for each estimate, with structure:
-                {estimate_name: float} for each of the estimates listed above
+        If CI=True, also includes:
+        - CI : dict
+            Contains confidence intervals for each estimate
+        - se : dict
+            Contains standard errors for each estimate
 
     Notes
     -------
-        - No integer rounding is performed on the estimates.
-        - The code accounts for edge cases where the counts
-          of rare species categories (e.g. $f_2$) might be zero.
-        - The CIs are clamped to the positive realm, so that
-          both upper and lower CIs are guarenteed to be >=0.
+    Make sure that the counts in ds1 and ds2 are properly aligned!
+    The function `to_copia_dataset()` can assist in this: set `remove_zeros=False`.
+
     
-    Warning
-    -------
-    Make sure that the counts in `s1` and `s2` are still properly aligned!
-    If that is not the case, the estimates will not be valid. The function
-    to_copia_dataset() can help: set remove_zeros=0. Example:
-
-    > from copia.data import to_copia_dataset
-    > s1 = to_copia_dataset(trees, data_type='abundance', input_type='counts',
-                          index_column='species', count_column='s1', remove_zeros=False)
-    > s2 = to_copia_dataset(trees, data_type='abundance', input_type='counts',
-                          index_column='species', count_column='s2', remove_zeros=False)
-    
-
-    Confidence intervals
-    -------
-    The calculation of the CIs is based on a bootstrap appraoch. For the total
-    shared, a log-transformation is used to obtain CI, so that LCL
-    is greater than the observed shared species; see Chao et al. (1987,
-    Biometrics, Eq. 12) for the transformation and formula. The resulting CI
-    is generally asymmetric. However, such a transformation cannot be applied
-    to the CI construction for f0+, f+0 and f00 because these three values
-    are not observable in data. Thus for these three terms, CIs are still
-    based on a symmetric interval. Thus, the lower CI may become negative due
-    to data sparsity (i.e., mainly due to large s.e.). This function truncates
-    any negative values in the CIs. The calculation for the CIs is to be credited
-    to Anne Chao.
-
     References
     -------
     - Chao, Anne, Estimating the population size for capture-recapture data
