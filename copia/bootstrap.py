@@ -292,6 +292,9 @@ def bootstrap_shared_species(s1, s2, fn, n_iter=1000, conf=0.95, **kwargs):
     lci = np.zeros_like(orig_est)
     uci = np.zeros_like(orig_est)
     
+    # For completeness, the code block below illustrates how to
+    # obtain confidence intervals using the analytical method:
+    
     # # For total shared (index 0):
     # var_ratio = est_sd[1]**2 / (est_mean[1] - shared_obs)**2 
     # R = np.exp(z_score * np.sqrt(np.log(1 + var_ratio)))
