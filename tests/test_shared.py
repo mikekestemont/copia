@@ -1,5 +1,3 @@
-import pytest
-
 import pandas as pd
 
 from copia.data import to_copia_dataset
@@ -114,4 +112,13 @@ def test_shared():
             f"estimate ({estimate:.2f}) not in "
             f"[{lcl:.2f}, {ucl:.2f}]"
         )
+
+        assert lcl >= 0, (
+            f"CI check failed for {name}: "
+            f"estimate ({estimate:.2f}) not in "
+            f"[{lcl:.2f}, {ucl:.2f}]"
+        )
+
+
+
     
