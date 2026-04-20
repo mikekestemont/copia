@@ -6,8 +6,9 @@ from functools import partial
 
 import numpy as np
 import scipy.stats
+import scipy.special as sc
 
-from scipy.optimize import fsolve
+from scipy.optimize import fsolve, minimize
 from copia.bootstrap import bootstrap_abundance_data, bootstrap_incidence_data,\
     bootstrap_shared_species
 from copia.data import AbundanceData, IncidenceData
@@ -628,6 +629,95 @@ def min_add_sample(ds: AbundanceData, solver="grid", search_space=(0, 100, 1e6),
         return n + m
 
 
+def ztnb(ds: AbundanceData):
+    r"""
+    Zero-Truncated Negative Binomial (ZTNB) estimate of bias-corrected species richness.
+
+    Parameters
+    ----------
+    ds : AbundanceData
+        An object containing the observed abundances for each individual species.
+
+    Returns
+    -------
+    richness : float
+        Estimate of the bias-corrected species richness (:math:`S + \hat{f_0}`) with:
+
+        .. math::
+            \hat{f_0} = S_{obs} \cdot \frac{p^r}{1 - p^r}
+
+        With:
+            - :math:`S_{obs}` = the observed number of distinct species.
+            - :math:`r` = the dispersion (shape) parameter of the Negative Binomial distribution.
+            - :math:`p` = the probability parameter of the Negative Binomial distribution.
+
+    Notes
+    -----
+    The standard Negative Binomial distribution assumes all counts (including zeros) 
+    are observable. In fields like historical bibliography or ecology, species with 
+    zero surviving observations cannot be recorded. Therefore, this estimator conditions 
+    the probability on :math:`k > 0` by maximizing a Zero-Truncated log-likelihood function.
+
+    References
+    ----------
+    -  J. Green, F. McIntyre, & P. Needham, 'The Shape of Incunable Survival 
+      and Statistical Estimation of Lost Editions', The Papers of the 
+      Bibliographical Society of America (2011), 141-218.
+    - John B. Peacock, 'Negative Binomial Distribution', https://doi.org/10.1002/9780470627242.CH32,
+      2010.
+    - Lucas N. Bandiera, 'Zero Truncated Negative Binomial Applied to NonLinear Data', The JP Journal of
+      Biostatistics (2014).  
+    - A blog on the zero-truncated negative binomial distribution by Gaetan De Waele:
+        https://gdewael.github.io/blog/zerotrunc/
+    """
+    counts = ds.counts
+    observed_species_count = ds.S_obs
+
+    def log_likelihood(parameters):
+        dispersion_r, probability_p = parameters
+        
+        # The optimizer bounds should prevent this, but we include a safety 
+        # check to avoid math errors (e.g., log of zero)
+        if dispersion_r <= 0 or probability_p <= 0 or probability_p >= 1:
+            return np.inf
+            
+        # Log Probability Mass Function (PMF) of the standard Negative Binomial.
+        # sc.gammaln is used to compute factorials for continuous distributions.
+        log_pmf = (sc.gammaln(dispersion_r + counts) - sc.gammaln(dispersion_r) - sc.gammaln(counts + 1)) + \
+                   dispersion_r * np.log(probability_p) + counts * np.log(1 - probability_p)
+        
+        # Calculate the theoretical probability of a count being exactly zero (p^r)
+        probability_of_zero = probability_p ** dispersion_r
+        
+        # Adjust the log-likelihood for zero-truncation by subtracting the 
+        # probability mass of the unobservable zero class.
+        return -np.sum(log_pmf - np.log(1 - probability_of_zero))
+
+    # Initial guesses for the L-BFGS-B optimizer:
+    # - 1.0 is a neutral starting dispersion (representing a geometric distribution).
+    # - 0.5 is a neutral starting probability (representing a 50/50 chance of survival).
+    initial_guess = [1.0, 0.5]
+    
+    # Constraints for the parameters to ensure mathematical validity:
+    # - dispersion_r must be strictly positive (> 0.001)
+    # - probability_p must be between 0 and 1, exclusive (> 0.001 and < 0.999) 
+    #   to prevent division by zero in the logarithmic transformations.
+    parameter_bounds = [(0.001, None), (0.001, 0.999)]
+
+    # Fit the distribution using Maximum Likelihood Estimation (MLE)
+    optimization_result = minimize(log_likelihood, initial_guess, bounds=parameter_bounds, method = 'L-BFGS-B')
+    fitted_dispersion_r, fitted_probability_p = optimization_result.x
+    
+    # Calculate the estimated probability of zero based on the fitted parameters
+    fitted_probability_zero = fitted_probability_p ** fitted_dispersion_r
+    
+    # Extrapolate the "Dark Matter" (f0)
+    estimated_lost_editions = observed_species_count * (fitted_probability_zero / (1 - fitted_probability_zero))
+    estimated_total_richness = observed_species_count + estimated_lost_editions
+
+    return estimated_total_richness
+
+
 ESTIMATORS = {
     "chao1": chao1,
     "ichao1": iChao1,
@@ -636,6 +726,7 @@ ESTIMATORS = {
     "minsample": min_add_sample,
     "ace": ace,
     "chao_shared": chao_shared,
+    "ztnb": ztnb,
 }
 
 
@@ -662,6 +753,7 @@ def diversity(
             - 'minsample'
             - 'chao_shared'
             - 'empirical' (same as None)
+            - 'ztnb'
     **kwargs : additional parameters passed to selected method
 
     Note
@@ -709,4 +801,4 @@ def diversity(
 
 __all__ = ['chao1', 'iChao1', 'egghe_proot',
            'ace', 'jackknife', 'min_add_sample',
-           'diversity', 'chao_shared']
+           'diversity', 'chao_shared', 'ztnb']

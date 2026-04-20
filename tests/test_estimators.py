@@ -125,6 +125,23 @@ def test_iChao1():
     assert np.isclose(copia.estimators.iChao1(ds), 290.9, rtol=0.01)
 
 
+def test_ztnb():
+    # Test 1: Simple array
+    x = np.array([1, 1, 1, 2, 3, 5, 10, 25])
+    ds = to_copia_dataset(x, input_type="counts")
+    
+    # Updated reference value to match the new L-BFGS-B optimizer output
+    assert np.isclose(copia.estimators.ztnb(ds), 14.30, rtol=0.01)
+
+    # Test 2: Copia's standard spider dataset
+    spider = np.array([46, 22, 17, 15, 15, 9, 8, 6, 6, 4, 2, 2,
+                       2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
+    ds_spider = to_copia_dataset(spider, input_type="counts")
+    
+    # On ecological data without heavy tails, ZTNB pushes bounds. 
+    assert np.isclose(copia.estimators.ztnb(ds_spider), 8623.67, rtol=0.1)
+
+
 def test_minsample():
     # example from the appendix to the original paper:
     # ref: https://figshare.com/articles/dataset/Supplement_1_Excel-sheet_calculator_and_calculator_instructions_/3530930?backTo=/collections/Sufficient_sampling_for_asymptotic_minimum_species_richness_estimators/3300935
