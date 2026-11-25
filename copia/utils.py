@@ -2,6 +2,7 @@
 Various utility functions.
 """
 import multiprocessing as mp
+import numbers
 
 import numpy as np
 from tqdm.auto import tqdm
@@ -54,7 +55,7 @@ def check_random_state(seed):
         return np.random.mtrand._rand
     if seed is None:
         return np.random.RandomState()
-    if isinstance(seed, int):
+    if isinstance(seed, numbers.Integral):
         return np.random.RandomState(seed)
     if isinstance(seed, np.random.RandomState):
         return seed

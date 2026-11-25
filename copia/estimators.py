@@ -801,7 +801,9 @@ def diversity(
     method = method.lower()
 
     if method == "chao_shared":
-        estimate = ESTIMATORS[method](ds, ds2, CI=CI)
+        estimate = ESTIMATORS[method](
+            ds, ds2, CI=CI, conf=conf, n_iter=n_iter, n_jobs=n_jobs,
+            seed=seed, disable_pb=disable_pb, **kwargs)
     elif CI and method != 'jackknife':
         if isinstance(ds, AbundanceData):
             bootstrap_fn = bootstrap_abundance_data
@@ -812,7 +814,7 @@ def diversity(
                 "ds must be an instance of AbundanceData or IncidenceData")
         estimate = bootstrap_fn(
             ds, fn=partial(ESTIMATORS[method], **kwargs),
-            n_iter=n_iter, n_jobs=n_jobs, seed=seed, disable_pb=disable_pb
+            n_iter=n_iter, conf=conf, n_jobs=n_jobs, seed=seed, disable_pb=disable_pb
         )
     elif CI and method == 'jackknife':
         estimate = ESTIMATORS[method](ds, CI=CI,

@@ -76,6 +76,14 @@ def test_incidence():
         incidence([1, 1, 2], T=None)
 
 
+def test_diversity_conf():
+    ds = to_copia_dataset(np.array([46, 22, 17, 15, 9, 8, 6, 4, 2, 2, 2] + [1] * 12),
+                          input_type="counts")
+    ci = [copia.estimators.diversity(ds, method="chao1", CI=True, conf=conf, n_iter=200,
+                                     seed=1, disable_pb=True) for conf in (0.5, 0.95)]
+    assert ci[1]["lci"] < ci[0]["lci"] < ci[0]["est"] < ci[0]["uci"] < ci[1]["uci"]
+
+
 def test_egghe_proot():
     x = np.array([1, 1, 1, 2, 3, 5, 10, 25])
     ds = to_copia_dataset(x, input_type="counts")

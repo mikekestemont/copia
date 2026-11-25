@@ -133,4 +133,30 @@ def test_shared():
             f"CI check failed for {name}, UCL: "
             f"estimate ({ucl:.2f})"
         )
-                  
+
+
+def shared_example(data_type='abundance', T=(None, None)):
+    s1 = np.array([1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 0, 0, 1, 2, 4, 1, 1, 2, 2])
+    s2 = np.array([1, 1, 2, 1, 3, 2, 2, 1, 1, 1, 4, 2, 1, 0, 0, 2, 1, 2, 2, 3])
+    return [to_copia_dataset(s, data_type=data_type, input_type='counts',
+                             n_sampling_units=t, remove_zeros=False)
+            for s, t in zip((s1, s2), T)]
+
+
+def test_shared_seed():
+    s1, s2 = shared_example()
+    kwargs = dict(CI=True, n_iter=50)
+    reference = copia.estimators.chao_shared(s1, s2, seed=1, **kwargs)
+    # the seed alone fixes the result, whatever the state of the global generator
+    for global_seed in range(5):
+        np.random.seed(global_seed)
+        assert copia.estimators.chao_shared(s1, s2, seed=1, **kwargs) == reference
+    assert copia.estimators.chao_shared(s1, s2, seed=np.int64(1), **kwargs) == reference
+    assert copia.estimators.chao_shared(s1, s2, seed=2, **kwargs) != reference
+
+    # the wrapper passes its arguments on
+    def wrapper(**kw):
+        return copia.estimators.diversity(s1, s2, method='chao_shared', CI=True, **kw)
+    assert wrapper(n_iter=50, seed=1) == reference
+    assert wrapper(n_iter=60, seed=1) != reference
+    assert wrapper(n_iter=50, seed=1, conf=0.5)['CI'] != reference['CI']
