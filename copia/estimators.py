@@ -215,9 +215,9 @@ def ace(ds: AbundanceData, k=10):
           "EstimateS" package and assume that the upper limit
           for considering a species "rare" is 10 observations.
         - Our implementation gives the same results as the R packages
-          "SpadeR" and "vegan". The "fossil" package, which it mirrored
-          before, sums i * f_i instead of i * (i - 1) * f_i in the
-          coefficient of variation.
+          "SpadeR" and "vegan". The "fossil" package (0.3.7), which it
+          mirrored before, sums i * f_i instead of i * (i - 1) * f_i in
+          the coefficient of variation.
 
     Returns
     -------
@@ -435,8 +435,10 @@ def chao_shared(ds1: AbundanceData, ds2: AbundanceData, CI=False, **kwargs):
     Notes
     -------
         - No integer rounding is performed on the estimates.
-        - The code accounts for edge cases where the counts
-          of rare species categories (e.g. $f_2$) might be zero.
+        - The estimate equals "Chao1-shared" in SpadeR as long as f2+, f+2
+          and f22 are all positive. If one of them is zero, it is set to 1,
+          as in the R code of Chao et al. (2017), where SpadeR switches to
+          a bias-corrected form.
         - The CIs are clamped to the positive realm, so that
           both upper and lower CIs are guarenteed to be >=0.
     
