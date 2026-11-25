@@ -19,8 +19,9 @@ The source is on [GitHub](https://github.com/mikekestemont/copia).
 ## Currently implemented diversity estimation methods
 
 - Empirical Richness: empirical species richness of an assemblage;
-- Chao1: Chao1 estimate of bias-corrected species richness;
-- "Improved" iChao1 estimate of bias-corrected species richness;
+- Chao1 (Chao2 for incidence data): Chao1 estimate of bias-corrected species
+  richness, with a bootstrap or an analytic confidence interval;
+- "Improved" iChao1 (iChao2) estimate of bias-corrected species richness;
 - Egghe & Proot: Egghe & Proot estimate of bias-corrected species richness;
 - ACE: ACE estimate of bias-corrected species richness (Chao & Lee 1992);
 - Jacknife: Jackknife estimate of bias-corrected species richness;

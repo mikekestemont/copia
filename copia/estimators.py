@@ -26,7 +26,7 @@ def empirical(ds: AbundanceData):
 
 
 @accepts(AbundanceData, IncidenceData)
-def chao1(ds: AbundanceData):
+def chao1(ds: AbundanceData, CI=False, conf=0.95):
     r"""
     Chao1 (abundance data) or Chao2 (incidence data) estimate of
     bias-corrected species richness. Formulas taken from Chao & Jost
@@ -37,6 +37,10 @@ def chao1(ds: AbundanceData):
     ds : AbundanceData or IncidenceData
         The observed counts for each individual species: numbers of
         individuals (Chao1) or numbers of sampling units (Chao2).
+    CI : bool (default = False)
+        Whether to return the analytic standard error and confidence interval.
+    conf : float (default = 0.95)
+        Confidence level for the confidence interval.
 
     Returns
     -------
@@ -62,6 +66,13 @@ def chao1(ds: AbundanceData):
               of species that do exist in the assemblage, but which were
               sighted zero times, i.e. the number of undetected species.       
 
+    If CI evaluates to True, a dict with the keys "est", "se", "lci" and "uci".
+    The interval is log-normal (Chao 1987), with a lower limit that is never
+    below the observed number of species. If no undetected species are estimated,
+    it rests on the expected number of species missed at the observed counts, as
+    in SpadeR. `diversity` gives the bootstrap interval by default, and this one
+    with ci_type='analytic'.
+
     References
     ----------
     - A. Chao, 'Non-parametric estimation of the classes in a population',
@@ -78,7 +89,27 @@ def chao1(ds: AbundanceData):
         S_est = S_obs + (n - 1) / n * (f1**2 / (2 * f2))
     else:
         S_est = S_obs + (n - 1) / n * f1 * (f1 - 1) / 2 * (f2 + 1)
-    return S_est
+
+    if not CI:
+        return S_est
+
+    a = (n - 1) / n
+    if f1 > 0 and f2 > 0:
+        r = f1 / f2
+        var = f2 * (a / 2 * r**2 + a**2 * r**3 + a**2 / 4 * r**4)
+    elif f1 > 1:
+        var = a * f1 * (f1 - 1) / 2 + a**2 * f1 * (2 * f1 - 1)**2 / 4 - a**2 * f1**4 / 4 / S_est
+
+    if S_est > S_obs:
+        lci, uci = stats.lognormal_ci(S_obs, S_est, np.sqrt(var), conf)
+    else:
+        x = ds.counts[ds.counts > 0]
+        missed = np.exp(-x).sum() / S_obs
+        var = np.sum(np.exp(-x) - np.exp(-2 * x)) - np.sum(x * np.exp(-x))**2 / n
+        margin = scipy.stats.norm.ppf((1 + conf) / 2) * np.sqrt(var) / (1 - missed)
+        lci = max(S_obs, S_obs / (1 - missed) - margin)
+        uci = S_obs / (1 - missed) + margin
+    return {"est": S_est, "se": np.sqrt(var), "lci": lci, "uci": uci}
 
 
 @accepts(AbundanceData, IncidenceData)
@@ -770,7 +801,8 @@ ESTIMATORS = {
 
 def diversity(
         ds: AbundanceData, ds2: AbundanceData=None, method=None, CI=False,
-        conf=0.95, n_iter=1000, n_jobs=1, seed=None, disable_pb=False, **kwargs):
+        conf=0.95, n_iter=1000, n_jobs=1, seed=None, disable_pb=False,
+        ci_type='bootstrap', **kwargs):
     r"""
     Wrapper for various bias-corrected richness functions
 
@@ -794,6 +826,9 @@ def diversity(
             - 'ztnb'
             - 'lincoln_petersen' (two lists)
             - 'care1' (three or more lists)
+    ci_type : str (default = 'bootstrap')
+        The type of confidence interval for 'chao1': 'bootstrap', or
+        'analytic' for the log-normal interval of Chao (1987).
     **kwargs : additional parameters passed to selected method
 
     Note
@@ -822,8 +857,11 @@ def diversity(
     elif method == "care1":
         estimate = ESTIMATORS[method](
             ds, CI=CI, conf=conf, n_iter=n_iter, seed=seed, **kwargs)
-    elif CI and method in ("jackknife", "lincoln_petersen"):
+    elif CI and (method in ("jackknife", "lincoln_petersen")
+                 or ci_type == "analytic" and method == "chao1"):
         estimate = ESTIMATORS[method](ds, CI=CI, conf=conf, **kwargs)
+    elif CI and ci_type != "bootstrap":
+        raise ValueError(f"There is no {ci_type} confidence interval for `{method}`")
     elif CI:
         if isinstance(ds, AbundanceData):
             bootstrap_fn = bootstrap_abundance_data

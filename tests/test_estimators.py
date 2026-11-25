@@ -2,7 +2,7 @@ import pytest
 import warnings
 
 import numpy as np
-from copia.data import to_copia_dataset
+from copia.data import AbundanceData, to_copia_dataset
 import copia.estimators
 import copia.diversity
 import copia.stats
@@ -74,6 +74,71 @@ def test_incidence():
 
     with pytest.raises(ValueError):
         incidence([1, 1, 2], T=None)
+
+
+def check_interval(estimate, est, se, lci, uci, atol):
+    assert np.allclose([estimate[k] for k in ("est", "se", "lci", "uci")],
+                       (est, se, lci, uci), atol=atol)
+
+
+def test_chao1_interval():
+    """
+    Reference values: SpadeR 0.1.1 (SpecAbunChao1 in ChaoSpecies), with the spider
+    data of test_spider.
+    """
+    girdled = np.array([46, 22, 17, 15, 15, 9, 8, 6, 6, 4, 2, 2, 2, 2] + [1] * 12)
+    logged = np.array([88, 22, 16, 15, 13, 10, 8, 8, 7, 7, 7, 5, 4, 4, 4, 3, 3, 3,
+                       3, 2, 2, 2, 2] + [1] * 14)
+    for x, reference in (
+            (girdled, (43.8929, 14.3056, 30.5110, 96.9712)),
+            (logged, (61.4028, 18.5315, 43.5023, 128.5828)),
+            (girdled[girdled != 2], (87.5875, 39.6782, 43.9513, 217.9663)),     # f2 = 0
+            (girdled[girdled != 1], (14, 0.6945, 14, 16.0074)),                 # f1 = 0
+            (np.append(girdled[girdled > 2], 1), (11, 0.5044, 11, 12.4312))):   # f1 = 1, f2 = 0
+        ds = to_copia_dataset(x, input_type="counts")
+        estimate = copia.estimators.chao1(ds, CI=True)
+        check_interval(estimate, *reference, atol=1e-4)
+        assert estimate["est"] == copia.estimators.chao1(ds)
+        assert copia.estimators.diversity(ds, method="chao1", CI=True,
+                                          ci_type="analytic") == estimate
+
+    narrow = copia.estimators.chao1(ds, CI=True, conf=0.5)
+    assert estimate["lci"] <= narrow["lci"] <= narrow["uci"] < estimate["uci"]
+    with pytest.raises(ValueError):
+        copia.estimators.diversity(ds, method="ace", CI=True, ci_type="analytic")
+
+
+def test_chao2_interval():
+    """
+    Cottontail rabbits captured over 18 nights, f1 to f7 (Edwards & Eberhardt 1967,
+    Journal of Wildlife Management; the population was known to be 135). Reference
+    values: SpadeR 0.1.1 (SpecInciChao2 and SpecInciiChao2 in ChaoSpecies).
+    """
+    ds = incidence(np.repeat(range(1, 8), (43, 16, 8, 6, 0, 2, 1)), T=18)
+    check_interval(copia.estimators.chao1(ds, CI=True),
+                   130.5712, 22.7535, 100.8987, 195.6050, atol=1e-4)
+    assert np.isclose(copia.estimators.iChao1(ds), 139.9012, atol=1e-4)
+
+
+def test_chao_1987():
+    """
+    Taxicabs in Edinburgh (Carothers 1973, a population of 420): f1 to f4, estimate and
+    log-normal interval, from Table 1 in Chao (1987). Chao's formulas of 1987 do not
+    have the factor (n - 1) / n, i.e. they are those for a large n.
+    """
+    for f, est, lci, uci in (
+            ((65, 12, 0, 0), 253, 162, 444), ((73, 8, 0, 0), 414, 230, 825),
+            ((75, 7, 0, 0), 484, 256, 1007), ((109, 24, 3, 0), 384, 279, 566),
+            ((112, 28, 2, 0), 366, 274, 523), ((117, 24, 4, 0), 430, 311, 635),
+            ((135, 42, 9, 1), 404, 323, 533), ((78, 5, 0, 0), 691, 323, 1626),
+            ((67, 9, 0, 0), 325, 190, 624), ((71, 7, 1, 0), 439, 234, 914),
+            ((112, 22, 0, 2), 421, 299, 635), ((106, 28, 3, 0), 338, 254, 481),
+            ((102, 26, 3, 0), 331, 246, 479), ((116, 48, 6, 2), 312, 259, 399)):
+        ds = AbundanceData(S_obs=sum(f), f1=f[0], f2=f[1], n=10**9,
+                           counts=np.repeat([1, 2, 3, 4], f))
+        estimate = copia.estimators.chao1(ds, CI=True)
+        assert np.allclose([estimate[k] for k in ("est", "lci", "uci")],
+                           (est, lci, uci), atol=0.6)
 
 
 def test_accepted_data():
