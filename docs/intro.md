@@ -26,7 +26,11 @@ The source is on [GitHub](https://github.com/mikekestemont/copia).
 - Jacknife: Jackknife estimate of bias-corrected species richness;
 - Minsample: Observed population size added to the minimum additional sampling
   estimate;
-  
+- Lincoln-Petersen: the size of a population from two lists of its members (with
+  Chapman's correction);
+- CARE-1: the size of a population from three or more lists, and the dependence
+  between the lists (Chao & Tsay 1998).
+
 ## Installation
 
 Copia requires Python 3.11 or greater. To install Copia, execute the following

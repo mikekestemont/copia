@@ -12,6 +12,7 @@ from scipy.optimize import fsolve, minimize
 from copia.bootstrap import bootstrap_abundance_data, bootstrap_incidence_data,\
     bootstrap_shared_species
 from copia.data import AbundanceData, CopiaData, IncidenceData, accepts
+from copia.lists import care1, dependence, lincoln_petersen
 
 import copia.stats as stats
 
@@ -762,6 +763,8 @@ ESTIMATORS = {
     "ace": ace,
     "chao_shared": chao_shared,
     "ztnb": ztnb,
+    "lincoln_petersen": lincoln_petersen,
+    "care1": care1,
 }
 
 
@@ -773,7 +776,7 @@ def diversity(
 
     Parameters
     ----------
-    ds : AbundanceData or IncidenceData
+    ds : AbundanceData, IncidenceData or ListData
         The dataset. Which of them an estimator is made for is declared in
         its definition; other data are refused.
     ds2 : AbundanceData or IncidenceData (default = None)
@@ -789,15 +792,18 @@ def diversity(
             - 'chao_shared'
             - 'empirical' (same as None)
             - 'ztnb'
+            - 'lincoln_petersen' (two lists)
+            - 'care1' (three or more lists)
     **kwargs : additional parameters passed to selected method
 
     Note
     ----
     If `CI` is True, a bootstrap procedure will be called on the
     specified method to compute the confidence intervals around
-    the central estimate etc. For the Jackknife procedure, the
-    CI is calculated analytically and no bootstrap values will
-    be included in the returned dict.
+    the central estimate etc. For the Jackknife procedure and
+    the Lincoln-Petersen estimate, the CI is calculated analytically
+    and no bootstrap values will be included in the returned dict.
+    CARE-1 has its own bootstrap.
 
     Returns
     -------
@@ -813,7 +819,12 @@ def diversity(
         estimate = ESTIMATORS[method](
             ds, ds2, CI=CI, conf=conf, n_iter=n_iter, n_jobs=n_jobs,
             seed=seed, disable_pb=disable_pb, **kwargs)
-    elif CI and method != 'jackknife':
+    elif method == "care1":
+        estimate = ESTIMATORS[method](
+            ds, CI=CI, conf=conf, n_iter=n_iter, seed=seed, **kwargs)
+    elif CI and method in ("jackknife", "lincoln_petersen"):
+        estimate = ESTIMATORS[method](ds, CI=CI, conf=conf, **kwargs)
+    elif CI:
         if isinstance(ds, AbundanceData):
             bootstrap_fn = bootstrap_abundance_data
         elif isinstance(ds, IncidenceData):
@@ -825,9 +836,6 @@ def diversity(
             ds, fn=partial(ESTIMATORS[method], **kwargs),
             n_iter=n_iter, conf=conf, n_jobs=n_jobs, seed=seed, disable_pb=disable_pb
         )
-    elif CI and method == 'jackknife':
-        estimate = ESTIMATORS[method](ds, CI=CI,
-                                      conf=conf, **kwargs)
     else:
         estimate = ESTIMATORS[method](ds, **kwargs)
 
@@ -835,4 +843,5 @@ def diversity(
 
 __all__ = ['empirical', 'chao1', 'iChao1', 'egghe_proot',
            'ace', 'jackknife', 'min_add_sample',
-           'diversity', 'chao_shared', 'ztnb']
+           'diversity', 'chao_shared', 'ztnb', 'lincoln_petersen',
+           'care1', 'dependence']

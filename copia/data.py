@@ -36,6 +36,15 @@ class IncidenceData(CopiaData):
         return self.T
 
 
+@dataclass(slots=True, frozen=True)
+class ListData(IncidenceData):
+    """Items on several lists, with the pattern of presence and absence of every
+    item. As incidence data, the lists are the sampling units."""
+    lists: tuple            # names of the lists
+    patterns: np.ndarray    # observed patterns, of shape (n patterns, n lists)
+    freqs: np.ndarray       # number of items with each pattern
+
+
 def accepts(*types):
     """Declare the types of data that an estimator is made for. The decorated
     function refuses other data (for its first argument)."""
@@ -251,6 +260,87 @@ def to_incidence_counts(
     return counts
 
 
+def to_list_patterns(
+    data,
+    input_type="observation_matrix",
+    index_column=None,
+    location_column=None,
+    count_column=None):
+    """
+    Converts data on several lists into the numbers of items with each pattern of
+    presence (1) and absence (0) on the lists.
+
+    Parameters:
+    data : np.ndarray, pd.DataFrame, pd.Series, list, tuple, or dict
+        The data on the lists, in a format that depends on the input_type.
+    input_type : str, optional
+        Specifies the format of the input data. Three options are available:
+        - 'observation_matrix': A matrix (NumPy array or pandas DataFrame) with one
+          row per item and one column per list. Non-zero entries indicate the
+          presence of an item on a list.
+        - 'observation_list': A list, tuple, or NumPy array of (item, list) pairs,
+          or a pandas DataFrame with specified columns for items and lists.
+        - 'counts': The number of items with each pattern, as published for most
+          studies: a dict or pandas Series with the patterns as keys ('101', or
+          (1, 0, 1)), or a DataFrame with one column per list and a count column.
+    index_column : str, optional
+        The name of the column that represents items. Required when input_type is
+        'observation_list' and data is a DataFrame.
+    location_column : str, optional
+        The name of the column that represents lists. Required when input_type is
+        'observation_list' and data is a DataFrame.
+    count_column : str, optional
+        The name of the column that represents counts. Required when input_type is
+        'counts' and data is a DataFrame.
+
+    Returns:
+    A pandas DataFrame with one column per list, and a pandas Series with the number
+    of items with each pattern. Items that are on none of the lists are left out.
+
+    Example Usage:
+    >>> to_list_patterns({'11': 5, '10': 8, '01': 3}, input_type='counts')
+    """
+    if input_type not in ("observation_matrix", "observation_list", "counts"):
+        raise ValueError(
+            "input_type must be either 'observation_matrix', 'observation_list', or 'counts'"
+        )
+
+    if input_type == "observation_matrix":
+        matrix = pd.DataFrame(data)
+        freqs = pd.Series(1, index=matrix.index)
+
+    elif input_type == "observation_list":
+        if not isinstance(data, pd.DataFrame):
+            data = pd.DataFrame(data, columns=["item", "list"])
+            index_column, location_column = "item", "list"
+        elif index_column is None or location_column is None:
+            raise ValueError(
+                "index_column and location_column must be specified for DataFrame input")
+        matrix = pd.crosstab(data[index_column], data[location_column])
+        freqs = pd.Series(1, index=matrix.index)
+
+    elif isinstance(data, pd.DataFrame):
+        if count_column is None:
+            raise ValueError("count_column must be specified for DataFrame input")
+        matrix, freqs = data.drop(columns=count_column), data[count_column]
+
+    else:
+        freqs = pd.Series(data)
+        matrix = pd.DataFrame([[int(p) for p in pattern] for pattern in freqs.index],
+                              index=freqs.index)
+
+    if matrix.shape[1] < 2:
+        raise ValueError("at least two lists are needed")
+    if (freqs < 0).any():
+        raise ValueError("the numbers of items should be non-negative")
+    if matrix.columns.equals(pd.RangeIndex(matrix.shape[1])):
+        matrix.columns = range(1, matrix.shape[1] + 1)
+    matrix = (matrix.fillna(0) != 0).astype(int)
+    keep = (matrix.sum(axis=1) > 0) & (freqs > 0)
+    freqs = freqs[keep].groupby([matrix.loc[keep, c] for c in matrix.columns]).sum()
+    return freqs.index.to_frame(index=False), freqs.reset_index(drop=True)
+
+
 def to_copia_dataset(
     observations,
     data_type="abundance",
@@ -261,14 +351,15 @@ def to_copia_dataset(
     n_sampling_units=None,
     remove_zeros=True):
     """
-    Converts the given observations into a Copia dataset, accommodating both
-    abundance and incidence data.
+    Converts the given observations into a Copia dataset, accommodating
+    abundance data, incidence data, and data on several lists.
 
     Parameters:
     observations : pd.DataFrame
         The input data to be converted into a Copia dataset.
     data_type : str, optional
-        The type of data in 'observations'. Can be 'abundance' or 'incidence'.
+        The type of data in 'observations'. Can be 'abundance', 'incidence' or
+        'lists'.
     input_type : str, optional
         The format of the input data (e.g., 'observations', 'counts'). Required
         for both abundance and incidence data.
@@ -279,8 +370,8 @@ def to_copia_dataset(
         The name of the column representing counts in 'observations'.
         Required for 'counts' input type.
     location_column : str, optional
-        The name of the column representing locations in 'observations'. Required for
-       'observation_list' input type in incidence data. 
+        The name of the column in 'observations' representing locations (or lists).
+        Required for 'observation_list' input type in incidence data and lists.
     title : str, optional
         The title for the dataset.
     description : str, optional
@@ -305,6 +396,15 @@ def to_copia_dataset(
     ...     index_column='species', count_column='count')
     # Creates a Copia dataset from abundance data with counts.
     """    
+    if data_type.lower() == "lists":
+        patterns, freqs = to_list_patterns(
+            observations, input_type, index_column, location_column, count_column)
+        on = np.repeat(patterns.sum(axis=1).values, freqs)
+        return ListData(
+            S_obs=len(on), f1=np.count_nonzero(on == 1), f2=np.count_nonzero(on == 2),
+            n=on.sum(), counts=on, T=patterns.shape[1], lists=tuple(patterns.columns),
+            patterns=patterns.values, freqs=freqs.values)
+
     match data_type.lower():
         case "abundance":
             counts = to_abundance_counts(
