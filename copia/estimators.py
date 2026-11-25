@@ -97,11 +97,12 @@ def iChao1(ds: AbundanceData):
 
     Note
     ----
-        As in SpadeR, the factors in the sample size, (n - 3) / n and
-        (n - 3) / (n - 1), are applied to incidence data only (with the
-        number of sampling units T as n): they are close to 1 for the
-        numbers of individuals in abundance data, but not for a small T.
-        With T <= 3 sampling units, iChao2 equals Chao2.
+        As in the original paper (equations 10b and 13) and SpadeR, the
+        factors in the sample size, (n - 3) / n and (n - 3) / (n - 1),
+        are applied to incidence data only (with the number of sampling
+        units T as n): they are close to 1 for the numbers of individuals
+        in abundance data, but not for a small T. With T <= 3 sampling
+        units, iChao2 equals Chao2.
 
         We follow the original paper's recommendation to add 1
         to f4, if there are no quadrupletons in the assemblage,
@@ -435,10 +436,11 @@ def chao_shared(ds1: AbundanceData, ds2: AbundanceData, CI=False, **kwargs):
     Notes
     -------
         - No integer rounding is performed on the estimates.
-        - The estimate equals "Chao1-shared" in SpadeR as long as f2+, f+2
-          and f22 are all positive. If one of them is zero, it is set to 1,
-          as in the R code of Chao et al. (2017), where SpadeR switches to
-          a bias-corrected form.
+        - The estimate is the lower bound of Pan et al. (2009, equation 3.6),
+          "Chao1-shared" in SpadeR, as long as f2+, f+2 and f22 are all
+          positive. If one of them is zero, it is set to 1, as in the R code
+          of Chao et al. (2017), where Pan et al. (equation 3.7) and SpadeR
+          switch to a bias-corrected form.
         - The CIs are clamped to the positive realm, so that
           both upper and lower CIs are guarenteed to be >=0.
     
