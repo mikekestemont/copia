@@ -378,12 +378,12 @@ def chao_shared(ds1: AbundanceData, ds2: AbundanceData, CI=False, **kwargs):
 
     Parameters
     ----------
-    s1 : 1D Numpy array 
-        Representing the observed counts for each individual species in the 
-        *first* assemblage. (Should have the same length as `s2`.)
-    s2 : 1D Numpy array
-        Representing the observed counts for each individual species in the 
-        *second* assemblage. (Should have the same length as `s1`.)
+    ds1 : AbundanceData or IncidenceData
+        The observed counts for each individual species in the *first*
+        assemblage. (Should have the same length as `ds2`.)
+    ds2 : AbundanceData or IncidenceData
+        The observed counts for each individual species in the *second*
+        assemblage. (Should have the same length as `ds1`.)
     CI : bool, default=False
         Whether to return the confidence interval for the estimates
         **kwargs : dict
@@ -392,12 +392,8 @@ def chao_shared(ds1: AbundanceData, ds2: AbundanceData, CI=False, **kwargs):
             Confidence level for intervals
         - n_iter : int, default=1000
             Number of bootstrap iterations
-        - n_jobs : int, default=1
-            Number of parallel jobs
         - seed : int or None
             Random seed
-        - disable_pb : bool, default=False
-            Whether to disable progress bar
 
     Returns
     -------
@@ -453,22 +449,16 @@ def chao_shared(ds1: AbundanceData, ds2: AbundanceData, CI=False, **kwargs):
 
     Confidence intervals
     -------
-    The calculation of the CIs is based on a bootstrap appraoch. For the total
-    shared, a log-transformation is used to obtain CI, so that LCL
-    is greater than the observed shared species; see Chao et al. (1987,
-    Biometrics, Eq. 12) for the transformation and formula. The resulting CI
-    is generally asymmetric. However, such a transformation cannot be applied
-    to the CI construction for f0+, f+0 and f00 because these three values
-    are not observable in data. Thus for these three terms, CIs are still
-    based on a symmetric interval. Thus, the lower CI may become negative due
-    to data sparsity (i.e., mainly due to large s.e.). This function truncates
-    any negative values in the CIs. The calculation for the CIs is to be credited
-    to Anne Chao.
+    The CIs are percentiles of the bootstrap estimates, except for obs_shared,
+    which has a symmetric interval around the observed number. The bootstrap
+    follows the R code of Anne Chao. It resamples individuals, so that CIs are
+    available for abundance data only.
 
     References
     -------
-    - Chao, Anne, Estimating the population size for capture-recapture data
-      with unequal catchability. Biometrics (1987), 783-791.
+    - Pan, H.-Y., Chao, A. & Foissner, W. 'A nonparametric lower bound for the
+      number of species shared by multiple communities', Journal of Agricultural,
+      Biological, and Environmental Statistics (2009), 452-468.
     - Chao, Anne, et al. 'Deciphering the Enigma of Undetected
       Species, Phylogenetic, and Functional Diversity Based on Good-Turing
       Theory.' Ecology (2017), 2914-2929.
@@ -478,12 +468,14 @@ def chao_shared(ds1: AbundanceData, ds2: AbundanceData, CI=False, **kwargs):
     """
 
     s1, s2 = ds1.counts, ds2.counts
+    n1, n2 = ds1.sample_size, ds2.sample_size
     assert len(s1) == len(s2)
-    
+
+    if CI and not all(isinstance(ds, AbundanceData) for ds in (ds1, ds2)):
+        raise NotImplementedError(
+            "Confidence intervals for shared species need abundance data")
+
     def _estimate_shared(s1, s2):
-        n1 = np.sum(s1)
-        n2 = np.sum(s2)
-        
         # Compute f0+
         f1p = np.sum((s1 == 1) & (s2 > 0))
         f2p = np.sum((s1 == 2) & (s2 > 0))
@@ -500,16 +492,17 @@ def chao_shared(ds1: AbundanceData, ds2: AbundanceData, CI=False, **kwargs):
         f00 = ((n1 - 1) / n1) * ((n2 - 1) / n2) * (f11**2 / (4 * max(f22, 1))) if f11 > 0 else 0
 
         obs_shared = np.sum((s1 > 0) & (s2 > 0))
-        S = obs_shared + f0p + fp0 + f00
+        unobs_shared = f0p + fp0 + f00
 
-        return np.array([S, obs_shared, f0p, fp0, f00])
+        return np.array([obs_shared + unobs_shared, obs_shared, f0p, fp0, f00,
+                         unobs_shared])
     
     # Point estimates:
     estimates = _estimate_shared(s1, s2)
     result = {
         "total": estimates[0],
         "obs_shared": estimates[1],
-        "unobs_shared": sum(estimates[2:]),
+        "unobs_shared": estimates[5],
         "f0+": estimates[2],
         "f+0": estimates[3],
         "f00": estimates[4]
@@ -525,7 +518,7 @@ def chao_shared(ds1: AbundanceData, ds2: AbundanceData, CI=False, **kwargs):
             "CI": {
                 "total": {"lower": lci[0], "upper": uci[0]},
                 "obs_shared": {"lower": lci[1], "upper": uci[1]},
-                "unobs_shared": {"lower": sum(lci[2:]), "upper": sum(uci[2:])},
+                "unobs_shared": {"lower": lci[5], "upper": uci[5]},
                 "f0+": {"lower": lci[2], "upper": uci[2]},
                 "f+0": {"lower": lci[3], "upper": uci[3]},
                 "f00": {"lower": lci[4], "upper": uci[4]}
@@ -533,7 +526,7 @@ def chao_shared(ds1: AbundanceData, ds2: AbundanceData, CI=False, **kwargs):
             "se": {
                 "total": est_sd[0],
                 "obs_shared": est_sd[1],
-                "unobs_shared": np.sqrt(np.sum(est_sd[2:]**2)),
+                "unobs_shared": est_sd[5],
                 "f0+": est_sd[2],
                 "f+0": est_sd[3],
                 "f00": est_sd[4]

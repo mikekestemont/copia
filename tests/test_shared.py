@@ -160,3 +160,27 @@ def test_shared_seed():
     assert wrapper(n_iter=50, seed=1) == reference
     assert wrapper(n_iter=60, seed=1) != reference
     assert wrapper(n_iter=50, seed=1, conf=0.5)['CI'] != reference['CI']
+
+
+def test_shared_incidence():
+    """
+    Reference values: SpadeR 0.1.1 (PanEstFun and, for incidence data,
+    PanEstFun.Sam), with the numbers of sampling units as sample sizes.
+    """
+    s1, s2 = shared_example()
+    assert np.isclose(copia.estimators.chao_shared(s1, s2)['total'], 25.16276, atol=1e-5)
+    s1, s2 = shared_example(data_type='incidence', T=(8, 6))
+    assert np.isclose(copia.estimators.chao_shared(s1, s2)['total'], 23.947917, atol=1e-5)
+    with pytest.raises(NotImplementedError):
+        copia.estimators.chao_shared(s1, s2, CI=True, n_iter=10)
+
+
+def test_shared_unobserved():
+    # the interval and standard error of a sum, not the sum of those of its three parts
+    s1, s2 = shared_example()
+    result = copia.estimators.chao_shared(s1, s2, CI=True, n_iter=500, seed=1)
+    parts = ['f0+', 'f+0', 'f00']
+    assert np.isclose(result['unobs_shared'], sum(result[p] for p in parts))
+    ci = result['CI']
+    assert ci['unobs_shared']['lower'] > sum(ci[p]['lower'] for p in parts)
+    assert ci['unobs_shared']['upper'] < sum(ci[p]['upper'] for p in parts)
