@@ -18,14 +18,15 @@ import copia.stats as stats
 
 def chao1(ds: AbundanceData):
     r"""
-    Chao1 estimate of bias-corrected species richness.
-    Formulas taken from Chao & Jost (2012), p. 2538.
+    Chao1 (abundance data) or Chao2 (incidence data) estimate of
+    bias-corrected species richness. Formulas taken from Chao & Jost
+    (2012), p. 2538.
 
     Parameters
     ----------
-    x : 1D numpy array with shape (number of species)
-        An array representing the abundances (observed
-        counts) for each individual species.
+    ds : AbundanceData or IncidenceData
+        The observed counts for each individual species: numbers of
+        individuals (Chao1) or numbers of sampling units (Chao2).
 
     Returns
     -------
@@ -43,7 +44,9 @@ def chao1(ds: AbundanceData):
               the sample (singletons),
             - :math:`f_2` = the number of species that were sighted twice
               (doubletons)
-            - :math:`n` = the observed, total sample size.
+            - :math:`n` = the sample size: the number of individuals for
+              abundance data, the number of sampling units (:math:`T`) for
+              incidence data.
             - :math:`S` = the observed number of distinct species.
             - :math:`\hat{f_0}` = the estimated lower bound for the number
               of species that do exist in the assemblage, but which were
@@ -53,12 +56,14 @@ def chao1(ds: AbundanceData):
     ----------
     - A. Chao, 'Non-parametric estimation of the classes in a population',
       Scandinavian Journal of Statistics (1984), 265-270.
+    - A. Chao, 'Estimating the population size for capture-recapture data
+      with unequal catchability', Biometrics (1987), 783-791.
     - A. Chao & Jost, 'Coverage-based rarefaction and extrapolation:
       standardizing samples by completeness rather than size', Ecology (2012),
       2533–2547.
     """
 
-    f1, f2, n, S_obs = ds.f1, ds.f2, ds.n, ds.S_obs
+    f1, f2, n, S_obs = ds.f1, ds.f2, ds.sample_size, ds.S_obs
     if f2 > 0:
         S_est = S_obs + (n - 1) / n * (f1**2 / (2 * f2))
     else:
@@ -68,13 +73,14 @@ def chao1(ds: AbundanceData):
 
 def iChao1(ds: AbundanceData):
     r"""
-    "Improved" iChao1 estimate of bias-corrected species richness
+    "Improved" iChao1 (abundance data) or iChao2 (incidence data) estimate
+    of bias-corrected species richness
 
     Parameters
     ----------
-    x : 1D numpy array with shape (number of species)
-        An array representing the abundances (observed
-        counts) for each individual species.
+    ds : AbundanceData or IncidenceData
+        The observed counts for each individual species: numbers of
+        individuals (iChao1) or numbers of sampling units (iChao2).
 
     Returns
     -------
@@ -84,6 +90,12 @@ def iChao1(ds: AbundanceData):
 
     Note
     ----
+        As in SpadeR, the factors in the sample size, (n - 3) / n and
+        (n - 3) / (n - 1), are applied to incidence data only (with the
+        number of sampling units T as n): they are close to 1 for the
+        numbers of individuals in abundance data, but not for a small T.
+        With T <= 3 sampling units, iChao2 equals Chao2.
+
         We follow the original paper's recommendation to add 1
         to f4, if there are no quadrupletons in the assemblage,
         so that iChao1 is always obtainable. A user warning will be
@@ -97,6 +109,12 @@ def iChao1(ds: AbundanceData):
     """
 
     ch1 = chao1(ds)
+    a = b = 1
+    if isinstance(ds, IncidenceData):
+        if ds.T <= 3:
+            return ch1
+        a, b = (ds.T - 3) / ds.T, (ds.T - 3) / (ds.T - 1)
+
     f1, f2, counts = ds.f1, ds.f2, ds.counts
     f3 = np.count_nonzero(counts == 3)
     f4 = np.count_nonzero(counts == 4)
@@ -105,7 +123,7 @@ def iChao1(ds: AbundanceData):
         warnings.warn("Add-one smoothing for f4 = 0", UserWarning)
         f4 += 1
 
-    iCh1 = ch1 + (f3 / (4 * f4)) * np.max((f1 - ((f2 * f3) / (2 * f4)), 0))
+    iCh1 = ch1 + a * (f3 / (4 * f4)) * np.max((f1 - b * ((f2 * f3) / (2 * f4)), 0))
     return iCh1
 
 
@@ -538,9 +556,11 @@ def min_add_sample(ds: AbundanceData, solver="grid", search_space=(0, 100, 1e6),
 
     Parameters
     ----------
-    x : array-like, with shape (number of species)
-        An array representing the abundances (observed
-        counts) for each individual species.
+    ds : AbundanceData or IncidenceData
+        The observed counts for each individual species. The estimate is
+        a number of individuals for abundance data and a number of
+        sampling units for incidence data (:math:`T` then replaces
+        :math:`n` below; Chao et al. 2009, eq. 14).
     solver : str (default = 'grid')
         Solver to find x* = the intersection between h() and v():
             - 'grid': hardcode grid search (slower, but recommended)
@@ -583,10 +603,13 @@ def min_add_sample(ds: AbundanceData, solver="grid", search_space=(0, 100, 1e6),
     if solver not in ('grid', 'fsolve'):
         raise ValueError(f'Unsupported "solver" argument: {solver}')
 
-    n, f1, f2 = ds.n, ds.f1, ds.f2
+    n, f1, f2 = ds.sample_size, ds.f1, ds.f2
+    rate = 2 * f2 / f1
+    if isinstance(ds, IncidenceData): # Chao et al. (2009), eq. 14
+        rate = 2 * f2 / ((1 - 1 / n) * f1 + 2 * f2 / n)
 
     h = lambda x: 2 * f1 * (1 + x)
-    v = lambda x: np.exp(x * (2 * f2 / f1))
+    v = lambda x: np.exp(x * rate)
 
     if solver == "fsolve":
         def intersection(func1, func2, x0):

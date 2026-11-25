@@ -46,6 +46,36 @@ def test_chao1_f2():
     ds = to_copia_dataset(demo_no_f2, input_type="counts")
     assert np.isclose(copia.estimators.chao1(ds), 25.998, rtol=0.001)
     
+def incidence(counts, T):
+    return to_copia_dataset(np.array(counts), data_type="incidence",
+                            input_type="counts", n_sampling_units=T)
+
+
+def test_incidence():
+    """
+    Chao2 and iChao2, with the number of sampling units T as the sample size.
+    Reference values: SpadeR 0.1.1 (SpecInciChao2 and SpecInciiChao2 in
+    ChaoSpecies, datatype = 'incidence_freq').
+    """
+    ds = incidence([10, 8, 7, 6, 5, 4, 4, 3, 3, 3, 3, 2, 2, 2, 2, 2] + [1] * 10, T=12)
+    assert np.isclose(copia.estimators.chao1(ds), 35.1667, atol=1e-4)
+    assert np.isclose(copia.estimators.iChao1(ds), 37.3826, atol=1e-4)
+
+    ds = incidence([4] * 3 + [3] * 6 + [2] * 9 + [1] * 20, T=5)
+    assert np.isclose(copia.estimators.chao1(ds), 55.7778, atol=1e-4)
+    assert np.isclose(copia.estimators.iChao1(ds), 58.8778, atol=1e-4)
+
+    # two sampling units: f0 = Q1^2 / (4 Q2), and no Q3 or Q4 for iChao2 to use
+    ds = incidence([2] * 25 + [1] * 60, T=2)
+    assert copia.estimators.chao1(ds) == 85 + 60**2 / (4 * 25)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        assert copia.estimators.iChao1(ds) == copia.estimators.chao1(ds)
+
+    with pytest.raises(ValueError):
+        incidence([1, 1, 2], T=None)
+
+
 def test_egghe_proot():
     x = np.array([1, 1, 1, 2, 3, 5, 10, 25])
     ds = to_copia_dataset(x, input_type="counts")
@@ -186,6 +216,17 @@ def test_spider():
     x = np.array(spider_logged)
     ds = to_copia_dataset(x, input_type="counts")
     assert np.isclose(copia.estimators.chao1(ds), 61.403, rtol=0.001)
+
+
+def test_minsample_incidence():
+    """
+    Additional sampling units needed for incidence data: Chao et al. (2009),
+    Table 2, g = 1.
+    """
+    for T, Q1, Q2, S_obs, additional in ((16, 4, 5, 20, 20), (18, 8, 5, 33, 62),
+                                         (121, 3, 2, 34, 270)):
+        ds = incidence([1] * Q1 + [2] * Q2 + [3] * (S_obs - Q1 - Q2), T)
+        assert round(copia.estimators.min_add_sample(ds) - T) == additional
 
 
 def test_moths():
