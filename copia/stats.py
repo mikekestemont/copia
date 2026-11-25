@@ -12,7 +12,42 @@ import scipy.stats
 from copia.data import AbundanceData
 
 import copia.utils
-import copia.estimators
+
+
+def lognormal_ci(S_obs, S_est, se, conf=0.95):
+    r"""
+    Log-normal confidence interval (Chao 1987)
+
+    The number of undetected species is taken to be log-normal, so that the lower
+    limit is never below the observed number of species.
+
+    Parameters
+    ----------
+    S_obs : int
+        The observed number of species.
+    S_est : float
+        The estimated number of species.
+    se : float
+        The standard error of the estimate.
+    conf : float (default = 0.95)
+        Confidence level for the confidence interval.
+
+    Returns
+    -------
+    lci, uci : float
+        The limits of the interval.
+
+    References
+    ----------
+    - A. Chao, 'Estimating the population size for capture-recapture data with
+      unequal catchability', Biometrics (1987), 783-791 (eq. 12).
+    """
+    f0 = S_est - S_obs
+    if f0 <= 0:
+        return S_est, S_est
+    z = scipy.stats.norm.ppf((1 + conf) / 2)
+    K = np.exp(z * np.sqrt(np.log(1 + se ** 2 / f0 ** 2)))
+    return S_obs + f0 / K, S_obs + f0 * K
 
 
 def dbinom(x, size, prob):

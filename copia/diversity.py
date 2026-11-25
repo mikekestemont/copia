@@ -9,7 +9,7 @@ from scipy.special import binom as choose
 
 from copia.bootstrap import bootstrap_abundance_data
 from copia.stats import lchoose
-from copia.data import AbundanceData
+from copia.data import AbundanceData, accepts
 
 
 def _chao_7a(t, n, f1, f2):
@@ -51,6 +51,7 @@ def _chao_7d(x, n, f1, p1, q):
     return (A + B)**(1 / (1 - q))
 
 
+@accepts(AbundanceData)
 def compute_true_hill_numbers(ds: AbundanceData, q_values):
     """
     Estimated Hill numbers

@@ -13,20 +13,28 @@ has been kindly contributed by Lauren Fonteyn. The depicted goat is a
 mythological reference to the cornucopia or "horn of plenty", the legendary horn
 of the goat Amaltheia, who fed the infant Zeus with her milk.
 
-Copia is licensed under [BSD3](https://opensource.org/licenses/BSD-3-Clause).
+Copia is licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 The source is on [GitHub](https://github.com/mikekestemont/copia).
 
 ## Currently implemented diversity estimation methods
 
 - Empirical Richness: empirical species richness of an assemblage;
-- Chao1: Chao1 estimate of bias-corrected species richness;
-- "Improved" iChao1 estimate of bias-corrected species richness;
+- Chao1 (Chao2 for incidence data): Chao1 estimate of bias-corrected species
+  richness, with a bootstrap or an analytic confidence interval;
+- "Improved" iChao1 (iChao2) estimate of bias-corrected species richness;
 - Egghe & Proot: Egghe & Proot estimate of bias-corrected species richness;
 - ACE: ACE estimate of bias-corrected species richness (Chao & Lee 1992);
 - Jacknife: Jackknife estimate of bias-corrected species richness;
 - Minsample: Observed population size added to the minimum additional sampling
   estimate;
-  
+- Lincoln-Petersen: the size of a population from two lists of its members (with
+  Chapman's correction);
+- CARE-1: the size of a population from three or more lists, and the dependence
+  between the lists (Chao & Tsay 1998).
+
+A test for one-inflation (an excess of singletons) and the sample coverage are also
+available.
+
 ## Installation
 
 Copia requires Python 3.11 or greater. To install Copia, execute the following

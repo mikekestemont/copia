@@ -11,7 +11,7 @@ setup(
     version='0.1.6',
     packages=find_packages(),
     url='https://github.com/mikekestemont/copia',
-    license='CC-BY',
+    license='CC-BY-4.0',
     author='Mike Kestemont & Folgert Karsdorp',
     description='Bias correction for richness in abundance data',
     long_description=long_description,
