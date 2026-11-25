@@ -32,6 +32,9 @@ The source is on [GitHub](https://github.com/mikekestemont/copia).
 - CARE-1: the size of a population from three or more lists, and the dependence
   between the lists (Chao & Tsay 1998).
 
+A test for one-inflation (an excess of singletons) and the sample coverage are also
+available.
+
 ## Installation
 
 Copia requires Python 3.11 or greater. To install Copia, execute the following
