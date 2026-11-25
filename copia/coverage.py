@@ -1,17 +1,47 @@
 import numpy as np
 
 from scipy.special import gammaln
-from copia.data import AbundanceData, CopiaData, IncidenceData
+from copia.data import AbundanceData, CopiaData, IncidenceData, accepts
 
 
-def estimate_coverage(ds: CopiaData, max_steps=None, step_size=1):
-    if isinstance(ds, AbundanceData):
-        n, f1, f2, T, counts = ds.n, ds.f1, ds.f2, ds.n, ds.counts
-    elif isinstance(ds, IncidenceData):
-        n, f1, f2, T, counts = ds.n, ds.f1, ds.f2, ds.T, ds.counts
-    else:
-        raise ValueError("ds Must be an instance of AbundanceData or IncidenceData")
-    
+@accepts(AbundanceData, IncidenceData)
+def sample_coverage(ds: CopiaData, size=None):
+    r"""
+    Estimated sample coverage: the proportion of the individuals in the assemblage
+    (or of the incidences) that belong to the species of a sample
+
+    Parameters
+    ----------
+    ds : AbundanceData or IncidenceData
+        The observed counts for each individual species.
+    size : int (default = None)
+        The size of the sample: a number of individuals for abundance data, of
+        sampling units for incidence data. Defaults to the observed size; the
+        coverage is interpolated for smaller sizes, and extrapolated for larger
+        ones.
+
+    Returns
+    -------
+    coverage : float
+        The estimated coverage, between 0 and 1.
+
+    References
+    ----------
+    - A. Chao & L. Jost, 'Coverage-based rarefaction and extrapolation:
+      standardizing samples by completeness rather than size', Ecology (2012),
+      2533-2547.
+    """
+    n, f1, f2, T, counts = ds.n, ds.f1, ds.f2, ds.sample_size, ds.counts
+    t = T if size is None else size
+
+    if t < T:
+        yy = counts[(T - counts) >= t]
+        return 1 - np.sum(yy / n * np.exp(
+            gammaln(T - yy + 1) -
+            gammaln(T - yy - t + 1) -
+            gammaln(T) +
+            gammaln(T - t)))
+
     if f2 == 0:
         f0 = (T - 1) / T * f1 * (f1 - 1) / 2
     else:
@@ -19,22 +49,18 @@ def estimate_coverage(ds: CopiaData, max_steps=None, step_size=1):
     A = 1
     if f1 > 0:
         A = T * f0 / (T * f0 + f1)
+    return 1 - f1 / n * A**(t - T + 1)
 
-    def _sub(t):
-        if t is None or t == T:
-            return 1 - f1 / n * A        
-        elif t < T:
-            yy = counts[(T - counts) >= t]
-            return 1 - sum(yy / n * np.exp(
-                gammaln(T - yy + 1) -
-                gammaln(T - yy - t + 1) -
-                gammaln(T) +
-                gammaln(T - t)))
-        elif t > T:
-            return 1 - f1 / n * A**(t - T + 1)
 
-    return np.array(
-        [_sub(t_i) for t_i in np.arange(1, max_steps + step_size, step_size)])
+def estimate_coverage(ds: CopiaData, max_steps=None, step_size=1):
+    r"""
+    Estimated sample coverage for a range of sample sizes, from 1 to max_steps
+    (by default, the observed size) in steps of step_size
+    """
+    if max_steps is None:
+        max_steps = ds.sample_size
+    return np.array([sample_coverage(ds, size)
+                     for size in np.arange(1, max_steps + step_size, step_size)])
 
 
 # def estimate_abundance_based_coverage(ds: AbundanceData, m=None):
