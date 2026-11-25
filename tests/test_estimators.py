@@ -200,6 +200,22 @@ def test_diversity_conf():
     assert ci[1]["lci"] < ci[0]["lci"] < ci[0]["est"] < ci[0]["uci"] < ci[1]["uci"]
 
 
+def test_chiu_2014():
+    """
+    Ciliates in three areas of Namibia (Foissner et al. 2002): estimates published in Chiu
+    et al. (2014), Table 4. Only Q1 to Q4 are given there; the other species are entered
+    here as found in 5 samples, which plays no role. (For the second area the paper has
+    216.50 as Chao2, where its formula gives 216.02; 216 in Pan et al. 2009, Table 2.)
+    """
+    for T, S_obs, Q, chao2, ichao2 in ((15, 154, (85, 29, 14, 9), 270.26, 290.69),
+                                       (17, 136, (69, 28, 13, 4), 216.02, 235.55),
+                                       (19, 234, (125, 44, 26, 14), 402.21, 436.88)):
+        ds = incidence([1] * Q[0] + [2] * Q[1] + [3] * Q[2] + [4] * Q[3] +
+                       [5] * (S_obs - sum(Q)), T)
+        assert np.isclose(copia.estimators.chao1(ds), chao2, atol=0.006)
+        assert np.isclose(copia.estimators.iChao1(ds), ichao2, atol=0.006)
+
+
 def test_egghe_proot():
     x = np.array([1, 1, 1, 2, 3, 5, 10, 25])
     ds = to_copia_dataset(x, input_type="counts")
