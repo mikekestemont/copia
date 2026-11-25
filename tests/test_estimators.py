@@ -98,6 +98,14 @@ def test_ace():
     assert np.isclose(copia.estimators.ace(ds), 15 / (1 - 5 / 25))
 
 
+def test_diversity_empirical():
+    ds = to_copia_dataset(np.array([1, 1, 1, 2, 3, 5, 10, 25]), input_type="counts")
+    assert copia.estimators.diversity(ds) == 8
+    assert copia.estimators.diversity(ds, method="Empirical") == 8
+    with pytest.raises(ValueError):
+        copia.estimators.diversity(ds, method="unknown")
+
+
 def test_diversity_conf():
     ds = to_copia_dataset(np.array([46, 22, 17, 15, 9, 8, 6, 4, 2, 2, 2] + [1] * 12),
                           input_type="counts")

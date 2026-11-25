@@ -16,6 +16,13 @@ from copia.data import AbundanceData, IncidenceData
 import copia.stats as stats
 
 
+def empirical(ds: AbundanceData):
+    r"""
+    Empirical (observed) species richness, without bias correction
+    """
+    return ds.S_obs
+
+
 def chao1(ds: AbundanceData):
     r"""
     Chao1 (abundance data) or Chao2 (incidence data) estimate of
@@ -734,6 +741,7 @@ def ztnb(ds: AbundanceData):
 
 
 ESTIMATORS = {
+    "empirical": empirical,
     "chao1": chao1,
     "ichao1": iChao1,
     "egghe_proot": egghe_proot,
@@ -762,7 +770,9 @@ def diversity(
         species estimation.
     method : str (default = None)
         One estimator of:
-            - 'chao1'
+            - 'chao1' (Chao2 on incidence data)
+            - 'ichao1' (iChao2 on incidence data)
+            - 'ace'
             - 'egghe_proot'
             - 'jackknife'
             - 'minsample'
@@ -784,13 +794,10 @@ def diversity(
     Consult the documentation of selected method.
     """
 
-    if method is not None and method.lower() not in ESTIMATORS:
+    method = "empirical" if method is None else method.lower()
+
+    if method not in ESTIMATORS:
         raise ValueError(f"Unknown estimation method `{method}`.")
-
-    if method is None:
-        method = "empirical"
-
-    method = method.lower()
 
     if method == "chao_shared":
         estimate = ESTIMATORS[method](
@@ -816,6 +823,6 @@ def diversity(
 
     return estimate
 
-__all__ = ['chao1', 'iChao1', 'egghe_proot',
+__all__ = ['empirical', 'chao1', 'iChao1', 'egghe_proot',
            'ace', 'jackknife', 'min_add_sample',
            'diversity', 'chao_shared', 'ztnb']
