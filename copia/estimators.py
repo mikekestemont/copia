@@ -207,8 +207,10 @@ def ace(ds: AbundanceData, k=10):
         - Regarding k, we follow the recommendation from the
           "EstimateS" package and assume that the upper limit
           for considering a species "rare" is 10 observations.
-        - Our implementation mirrors that in the "fossil" R
-          package (https://cran.r-project.org/web/packages/fossil).
+        - Our implementation gives the same results as the R packages
+          "SpadeR" and "vegan". The "fossil" package, which it mirrored
+          before, sums i * f_i instead of i * (i - 1) * f_i in the
+          coefficient of variation.
 
     Returns
     -------
@@ -223,17 +225,14 @@ def ace(ds: AbundanceData, k=10):
     - R.K. Colwell & J.E. Elsensohn, 'EstimateS turns 20: statistical
       estimation of species richness and shared species from samples,
       with non-parametric extrapolation', Ecography 37 (2014), 609–613.
-    - M.J. Vavrek, 'fossil: palaeoecological and palaeogeographical
-      analysis tools', Palaeontologia Electronica 14 (2011), 1T.
     """
 
-    x, f1 = ds.counts, ds.f1
-    nr = sum(x[x <= k])
-    sa = np.count_nonzero(x > k)
-    sr = np.count_nonzero(x <= k)
+    x, f1 = ds.counts[ds.counts > 0], ds.f1
+    rare = x[x <= k]
+    nr, sr = rare.sum(), len(rare)
+    sa = len(x) - sr
     ca = 1 - (f1 / nr)
-    sumf = np.sum([i * (x == i).sum() for i in range(1, k + 1)])
-    g2a = np.max((sr / ca) * (sumf / (nr * (nr - 1))) - np.array((1.0, 0.0)))
+    g2a = max((sr / ca) * (np.sum(rare * (rare - 1)) / (nr * (nr - 1))) - 1, 0)
     S = sa + sr / ca + (f1 / ca) * g2a
     return S
 

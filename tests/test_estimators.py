@@ -76,6 +76,28 @@ def test_incidence():
         incidence([1, 1, 2], T=None)
 
 
+def test_ace():
+    """
+    Reference values: vegan (estimateR) and SpadeR 0.1.1 (ChaoSpecies), with
+    the spider data of test_spider.
+    """
+    girdled = np.array([46, 22, 17, 15, 15, 9, 8, 6, 6, 4, 2, 2, 2, 2] + [1] * 12)
+    logged = np.array([88, 22, 16, 15, 13, 10, 8, 8, 7, 7, 7, 5, 4, 4, 4, 3, 3, 3,
+                       3, 2, 2, 2, 2] + [1] * 14)
+    for x, reference in ((girdled, 48.4152), (logged, 52.6850)):
+        ds = to_copia_dataset(x, input_type="counts")
+        assert np.isclose(copia.estimators.ace(ds), reference, atol=1e-4)
+        # absent species do not count as rare
+        ds = to_copia_dataset(np.append(x, [0] * 20), input_type="counts",
+                              remove_zeros=False)
+        assert np.isclose(copia.estimators.ace(ds), reference, atol=1e-4)
+
+    # the squared coefficient of variation is never negative: S_rare / C otherwise
+    x = np.array([2] * 10 + [1] * 5)
+    ds = to_copia_dataset(x, input_type="counts")
+    assert np.isclose(copia.estimators.ace(ds), 15 / (1 - 5 / 25))
+
+
 def test_diversity_conf():
     ds = to_copia_dataset(np.array([46, 22, 17, 15, 9, 8, 6, 4, 2, 2, 2] + [1] * 12),
                           input_type="counts")
