@@ -35,3 +35,39 @@ def test_bootstrap_seed():
     assert np.isclose(c['uci'], d['uci'], rtol=0.001)
     assert np.isclose(c['lci'], d['lci'], rtol=0.001)
 
+
+COUNTS = np.array([88, 22, 16, 15, 13, 10, 8, 7, 5, 4, 3, 2, 2, 2] + [1] * 14)
+
+
+def chao1_even(ds):
+    # fails on the bootstrap samples with an odd number of singletons
+    if ds.f1 % 2:
+        raise ZeroDivisionError
+    return copia.estimators.chao1(ds)
+
+
+def data_only(ds):
+    # fails on every bootstrap sample
+    if not np.array_equal(ds.counts, COUNTS):
+        raise ValueError
+    return copia.estimators.chao1(ds)
+
+
+@pytest.mark.parametrize("n_jobs", [1, 2])
+def test_bootstrap_failures(n_jobs):
+    ds = to_copia_dataset(COUNTS, input_type="counts")
+    kwargs = dict(n_iter=50, n_jobs=n_jobs, seed=1, disable_pb=True)
+    # failed bootstrap samples are reported, not silently dropped
+    with pytest.warns(UserWarning, match="of 50 tasks failed"):
+        bootstrap_abundance_data(ds, chao1_even, **kwargs)
+    with pytest.raises(ValueError):
+        bootstrap_abundance_data(ds, data_only, **kwargs)
+
+
+def test_bootstrap_jobs():
+    # the same result in this process (any function) and in worker processes
+    ds = to_copia_dataset(COUNTS, input_type="counts")
+    kwargs = dict(n_iter=50, seed=1, disable_pb=True)
+    one = bootstrap_abundance_data(ds, lambda d: copia.estimators.chao1(d), n_jobs=1, **kwargs)
+    two = bootstrap_abundance_data(ds, copia.estimators.chao1, n_jobs=2, **kwargs)
+    assert (one == two).all()
