@@ -1,3 +1,6 @@
+import functools
+import inspect
+
 import numpy as np
 import pandas as pd
 
@@ -31,7 +34,25 @@ class IncidenceData(CopiaData):
     @property
     def sample_size(self):
         return self.T
-    
+
+
+def accepts(*types):
+    """Declare the types of data that an estimator is made for. The decorated
+    function refuses other data (for its first argument)."""
+    def decorate(fn):
+        first = next(iter(inspect.signature(fn).parameters))
+
+        @functools.wraps(fn)
+        def checked(*args, **kwargs):
+            if args or first in kwargs:
+                ds = args[0] if args else kwargs[first]
+                if not isinstance(ds, types):
+                    needed = " or ".join(t.__name__ for t in types)
+                    raise TypeError(f"{fn.__name__} needs {needed}, not {type(ds).__name__}")
+            return fn(*args, **kwargs)
+        return checked
+    return decorate
+
 
 def to_abundance_counts(data, input_type="observations", index_column=None,
                         count_column=None):

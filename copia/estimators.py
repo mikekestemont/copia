@@ -11,11 +11,12 @@ import scipy.special as sc
 from scipy.optimize import fsolve, minimize
 from copia.bootstrap import bootstrap_abundance_data, bootstrap_incidence_data,\
     bootstrap_shared_species
-from copia.data import AbundanceData, IncidenceData
+from copia.data import AbundanceData, CopiaData, IncidenceData, accepts
 
 import copia.stats as stats
 
 
+@accepts(CopiaData)
 def empirical(ds: AbundanceData):
     r"""
     Empirical (observed) species richness, without bias correction
@@ -23,6 +24,7 @@ def empirical(ds: AbundanceData):
     return ds.S_obs
 
 
+@accepts(AbundanceData, IncidenceData)
 def chao1(ds: AbundanceData):
     r"""
     Chao1 (abundance data) or Chao2 (incidence data) estimate of
@@ -78,6 +80,7 @@ def chao1(ds: AbundanceData):
     return S_est
 
 
+@accepts(AbundanceData, IncidenceData)
 def iChao1(ds: AbundanceData):
     r"""
     "Improved" iChao1 (abundance data) or iChao2 (incidence data) estimate
@@ -134,6 +137,7 @@ def iChao1(ds: AbundanceData):
     return iCh1
 
 
+@accepts(AbundanceData)
 def egghe_proot(ds: AbundanceData, alpha=150):
     r"""
     Egghe & Proot estimate of bias-corrected species richness
@@ -195,6 +199,7 @@ def egghe_proot(ds: AbundanceData, alpha=150):
     return S_lost if not np.isinf(S_lost) else np.nan
 
 
+@accepts(AbundanceData)
 def ace(ds: AbundanceData, k=10):
     r"""
     ACE estimate of bias-corrected species richness (Chao & Lee 1992)
@@ -244,6 +249,7 @@ def ace(ds: AbundanceData, k=10):
     return S
 
 
+@accepts(AbundanceData)
 def jackknife(ds: AbundanceData, k=5, CI=False, conf=0.95):
     r"""
     Jackknife estimate of bias-corrected species richness
@@ -355,6 +361,7 @@ def jackknife(ds: AbundanceData, k=5, CI=False, conf=0.95):
     return d
 
 
+@accepts(AbundanceData)
 def chao_wor(ds: AbundanceData, q, CI=0.95):
     # Convert the int64 to longs to ensure the numbers
     # don't get too big in the variance calculation
@@ -378,6 +385,7 @@ def chao_wor(ds: AbundanceData, q, CI=0.95):
     }
 
 
+@accepts(AbundanceData, IncidenceData)
 def chao_shared(ds1: AbundanceData, ds2: AbundanceData, CI=False, **kwargs):
     r"""
     Estimate (shared) unseen species in two assemblages
@@ -549,6 +557,7 @@ def chao_shared(ds1: AbundanceData, ds2: AbundanceData, CI=False, **kwargs):
     return result
 
 
+@accepts(AbundanceData, IncidenceData)
 def min_add_sample(ds: AbundanceData, solver="grid", search_space=(0, 100, 1e6),
                    tolerance=1e-1, diagnostics=False):
     r"""
@@ -653,6 +662,7 @@ def min_add_sample(ds: AbundanceData, solver="grid", search_space=(0, 100, 1e6),
         return n + m
 
 
+@accepts(AbundanceData)
 def ztnb(ds: AbundanceData):
     r"""
     Zero-Truncated Negative Binomial (ZTNB) estimate of bias-corrected species richness.
@@ -763,13 +773,11 @@ def diversity(
 
     Parameters
     ----------
-    x : array-like, with shape (number of species)
-        An array representing the abundances (observed
-        counts) for each individual species.
-    x2: array-like, with shape (number of species) (default = None)
-        An array representing the abundances (observed
-        counts) for each individual species. Only used for shared
-        species estimation.
+    ds : AbundanceData or IncidenceData
+        The dataset. Which of them an estimator is made for is declared in
+        its definition; other data are refused.
+    ds2 : AbundanceData or IncidenceData (default = None)
+        The second assemblage. Only used for shared species estimation.
     method : str (default = None)
         One estimator of:
             - 'chao1' (Chao2 on incidence data)

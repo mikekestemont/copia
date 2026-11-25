@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 
-from copia.data import to_copia_dataset
+from copia.data import AbundanceData, IncidenceData, accepts, to_copia_dataset
 import copia.utils
 
 
@@ -20,6 +20,7 @@ def bt_prob_abundance(ds):
     return p
 
 
+@accepts(AbundanceData)
 def bootstrap_abundance_data(ds, fn,
                              n_iter=1000,
                              conf=0.95,
@@ -106,6 +107,7 @@ def bt_prob_incidence(ds):
     return np.hstack((p, np.array([p0 for _ in np.arange(Q0)])))
 
 
+@accepts(IncidenceData)
 def bootstrap_incidence_data(ds,
                              fn,
                              n_iter=1000,

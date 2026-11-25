@@ -76,6 +76,27 @@ def test_incidence():
         incidence([1, 1, 2], T=None)
 
 
+def test_accepted_data():
+    # the estimators refuse data they are not made for
+    ds = incidence([4] * 3 + [3] * 6 + [2] * 9 + [1] * 20, T=5)
+    for method in ("ace", "egghe_proot", "jackknife", "ztnb"):
+        with pytest.raises(TypeError):
+            copia.estimators.diversity(ds, method=method)
+    with pytest.raises(TypeError):
+        copia.diversity.compute_hill_numbers(ds, estimate_unseen=True)
+    with pytest.raises(TypeError):
+        copia.diversity.compute_hill_numbers(ds, CI=True, n_iter=10)
+    with pytest.raises(TypeError):
+        copia.estimators.chao1(np.array([1, 1, 2]))
+
+    # also in calls by keyword
+    assert copia.estimators.chao1(ds=ds) == copia.estimators.chao1(ds)
+    with pytest.raises(TypeError):
+        copia.estimators.ace(ds=ds)
+    with pytest.raises(TypeError):
+        copia.estimators.chao1()
+
+
 def test_ace():
     """
     Reference values: vegan (estimateR) and SpadeR 0.1.1 (ChaoSpecies), with
