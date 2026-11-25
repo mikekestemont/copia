@@ -279,8 +279,10 @@ def bootstrap_shared_species(s1, s2, fn, n_iter=1000, conf=0.95, **kwargs):
     rnd = copia.utils.check_random_state(kwargs.get('seed', None))
     z_score = stats.norm.ppf((1 + conf) / 2)
     
-    # Get bootstrap probabilities and generate samples
-    pseen1, pseen2, n1, n2 = bt_prob_shared(s1, s2, seed=rnd)
+    # Get bootstrap probabilities and generate samples. The placement of the undetected
+    # species is seeded on its own: with an integer seed, the results are then those of
+    # earlier versions, in which it followed np.random.seed(seed).
+    pseen1, pseen2, n1, n2 = bt_prob_shared(s1, s2, seed=kwargs.get('seed', None))
     
     # Get original estimates for reference
     orig_est = fn(s1, s2)

@@ -2,6 +2,7 @@ import pytest
 import warnings
 
 import numpy as np
+from copia.bootstrap import bt_prob_shared
 from copia.data import to_copia_dataset
 import copia.estimators
 import copia.diversity
@@ -160,6 +161,28 @@ def test_shared_seed():
     assert wrapper(n_iter=50, seed=1) == reference
     assert wrapper(n_iter=60, seed=1) != reference
     assert wrapper(n_iter=50, seed=1, conf=0.5)['CI'] != reference['CI']
+
+
+def test_shared_earlier_versions():
+    """
+    With an integer seed, the results of earlier versions after np.random.seed(seed): the
+    undetected species are placed with the global generator, and the samples are drawn
+    with a generator of their own. (Redone here, since seeded samples with probabilities
+    of zero differ between versions of NumPy.)
+    """
+    s1, s2 = shared_example()
+    for seed in (1, 573861):
+        np.random.seed(seed)
+        p1, p2, n1, n2 = bt_prob_shared(s1.counts, s2.counts, seed=np.random)
+        rnd = np.random.RandomState(seed)
+        totals = []
+        for _ in range(50):
+            sample = [to_copia_dataset(rnd.multinomial(int(n), p / np.sum(p)),
+                                       input_type='counts', remove_zeros=False)
+                      for n, p in ((n1, p1), (n2, p2))]
+            totals.append(copia.estimators.chao_shared(*sample)['total'])
+        ci = copia.estimators.chao_shared(s1, s2, CI=True, n_iter=50, seed=seed)['CI']['total']
+        assert np.allclose([ci['lower'], ci['upper']], np.percentile(totals, [2.5, 97.5]))
 
 
 def test_shared_incidence():
