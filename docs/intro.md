@@ -13,7 +13,7 @@ has been kindly contributed by Lauren Fonteyn. The depicted goat is a
 mythological reference to the cornucopia or "horn of plenty", the legendary horn
 of the goat Amaltheia, who fed the infant Zeus with her milk.
 
-Copia is licensed under [BSD3](https://opensource.org/licenses/BSD-3-Clause).
+Copia is licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 The source is on [GitHub](https://github.com/mikekestemont/copia).
 
 ## Currently implemented diversity estimation methods
