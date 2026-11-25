@@ -46,6 +46,90 @@ def test_chao1_f2():
     ds = to_copia_dataset(demo_no_f2, input_type="counts")
     assert np.isclose(copia.estimators.chao1(ds), 25.998, rtol=0.001)
     
+def incidence(counts, T):
+    return to_copia_dataset(np.array(counts), data_type="incidence",
+                            input_type="counts", n_sampling_units=T)
+
+
+def test_incidence():
+    """
+    Chao2 and iChao2, with the number of sampling units T as the sample size.
+    Reference values: SpadeR 0.1.1 (SpecInciChao2 and SpecInciiChao2 in
+    ChaoSpecies, datatype = 'incidence_freq').
+    """
+    ds = incidence([10, 8, 7, 6, 5, 4, 4, 3, 3, 3, 3, 2, 2, 2, 2, 2] + [1] * 10, T=12)
+    assert np.isclose(copia.estimators.chao1(ds), 35.1667, atol=1e-4)
+    assert np.isclose(copia.estimators.iChao1(ds), 37.3826, atol=1e-4)
+
+    ds = incidence([4] * 3 + [3] * 6 + [2] * 9 + [1] * 20, T=5)
+    assert np.isclose(copia.estimators.chao1(ds), 55.7778, atol=1e-4)
+    assert np.isclose(copia.estimators.iChao1(ds), 58.8778, atol=1e-4)
+
+    # two sampling units: f0 = Q1^2 / (4 Q2), and no Q3 or Q4 for iChao2 to use
+    ds = incidence([2] * 25 + [1] * 60, T=2)
+    assert copia.estimators.chao1(ds) == 85 + 60**2 / (4 * 25)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        assert copia.estimators.iChao1(ds) == copia.estimators.chao1(ds)
+
+    with pytest.raises(ValueError):
+        incidence([1, 1, 2], T=None)
+
+
+def test_ace():
+    """
+    Reference values: vegan (estimateR) and SpadeR 0.1.1 (ChaoSpecies), with
+    the spider data of test_spider.
+    """
+    girdled = np.array([46, 22, 17, 15, 15, 9, 8, 6, 6, 4, 2, 2, 2, 2] + [1] * 12)
+    logged = np.array([88, 22, 16, 15, 13, 10, 8, 8, 7, 7, 7, 5, 4, 4, 4, 3, 3, 3,
+                       3, 2, 2, 2, 2] + [1] * 14)
+    for x, reference in ((girdled, 48.4152), (logged, 52.6850)):
+        ds = to_copia_dataset(x, input_type="counts")
+        assert np.isclose(copia.estimators.ace(ds), reference, atol=1e-4)
+        # absent species do not count as rare
+        ds = to_copia_dataset(np.append(x, [0] * 20), input_type="counts",
+                              remove_zeros=False)
+        assert np.isclose(copia.estimators.ace(ds), reference, atol=1e-4)
+
+    # the squared coefficient of variation is never negative: S_rare / C otherwise
+    x = np.array([2] * 10 + [1] * 5)
+    ds = to_copia_dataset(x, input_type="counts")
+    assert np.isclose(copia.estimators.ace(ds), 15 / (1 - 5 / 25))
+
+
+def test_diversity_empirical():
+    ds = to_copia_dataset(np.array([1, 1, 1, 2, 3, 5, 10, 25]), input_type="counts")
+    assert copia.estimators.diversity(ds) == 8
+    assert copia.estimators.diversity(ds, method="Empirical") == 8
+    with pytest.raises(ValueError):
+        copia.estimators.diversity(ds, method="unknown")
+
+
+def test_diversity_conf():
+    ds = to_copia_dataset(np.array([46, 22, 17, 15, 9, 8, 6, 4, 2, 2, 2] + [1] * 12),
+                          input_type="counts")
+    ci = [copia.estimators.diversity(ds, method="chao1", CI=True, conf=conf, n_iter=200,
+                                     seed=1, disable_pb=True) for conf in (0.5, 0.95)]
+    assert ci[1]["lci"] < ci[0]["lci"] < ci[0]["est"] < ci[0]["uci"] < ci[1]["uci"]
+
+
+def test_chiu_2014():
+    """
+    Ciliates in three areas of Namibia (Foissner et al. 2002): estimates published in Chiu
+    et al. (2014), Table 4. Only Q1 to Q4 are given there; the other species are entered
+    here as found in 5 samples, which plays no role. (For the second area the paper has
+    216.50 as Chao2, where its formula gives 216.02; 216 in Pan et al. 2009, Table 2.)
+    """
+    for T, S_obs, Q, chao2, ichao2 in ((15, 154, (85, 29, 14, 9), 270.26, 290.69),
+                                       (17, 136, (69, 28, 13, 4), 216.02, 235.55),
+                                       (19, 234, (125, 44, 26, 14), 402.21, 436.88)):
+        ds = incidence([1] * Q[0] + [2] * Q[1] + [3] * Q[2] + [4] * Q[3] +
+                       [5] * (S_obs - sum(Q)), T)
+        assert np.isclose(copia.estimators.chao1(ds), chao2, atol=0.006)
+        assert np.isclose(copia.estimators.iChao1(ds), ichao2, atol=0.006)
+
+
 def test_egghe_proot():
     x = np.array([1, 1, 1, 2, 3, 5, 10, 25])
     ds = to_copia_dataset(x, input_type="counts")
@@ -186,6 +270,17 @@ def test_spider():
     x = np.array(spider_logged)
     ds = to_copia_dataset(x, input_type="counts")
     assert np.isclose(copia.estimators.chao1(ds), 61.403, rtol=0.001)
+
+
+def test_minsample_incidence():
+    """
+    Additional sampling units needed for incidence data: Chao et al. (2009),
+    Table 2, g = 1.
+    """
+    for T, Q1, Q2, S_obs, additional in ((16, 4, 5, 20, 20), (18, 8, 5, 33, 62),
+                                         (121, 3, 2, 34, 270)):
+        ds = incidence([1] * Q1 + [2] * Q2 + [3] * (S_obs - Q1 - Q2), T)
+        assert round(copia.estimators.min_add_sample(ds) - T) == additional
 
 
 def test_moths():

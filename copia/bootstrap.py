@@ -146,8 +146,15 @@ def bootstrap_incidence_data(ds,
     return out
 
 
-def bt_prob_shared(s1, s2):
-    """Calculate bootstrap probabilities for shared species estimation."""
+def bt_prob_shared(s1, s2, seed=None):
+    """Calculate bootstrap probabilities for shared species estimation.
+
+    The undetected species are placed at random among the species that are
+    absent from the sample concerned; `seed` (an integer or a random number
+    generator) makes this placement reproducible.
+    """
+    rnd = copia.utils.check_random_state(seed)
+
     # Remove species with zero total abundance
     mask = (s1 + s2) > 0
     s1, s2 = s1[mask], s2[mask]
@@ -224,17 +231,17 @@ def bt_prob_shared(s1, s2):
     zero_indices2 = np.where(s2_ext == 0)[0]
     
     if f01_star == 1 and len(zero_indices1) >= 1:
-        idx1 = np.random.choice(zero_indices1, 1)
+        idx1 = rnd.choice(zero_indices1, 1)
         prob1[idx1] = punseen1
     elif f01_star > 1:
-        idx1 = np.random.choice(zero_indices1, f01_star, replace=False)
+        idx1 = rnd.choice(zero_indices1, f01_star, replace=False)
         prob1[idx1] = punseen1
         
     if f02_star == 1 and len(zero_indices2) >= 1:
-        idx2 = np.random.choice(zero_indices2, 1)
+        idx2 = rnd.choice(zero_indices2, 1)
         prob2[idx2] = punseen2
     elif f02_star > 1:
-        idx2 = np.random.choice(zero_indices2, f02_star, replace=False)
+        idx2 = rnd.choice(zero_indices2, f02_star, replace=False)
         prob2[idx2] = punseen2
     
     # Final scaling
@@ -267,11 +274,13 @@ def percentile_ci(estimates, conf=0.95):
 
 def bootstrap_shared_species(s1, s2, fn, n_iter=1000, conf=0.95, **kwargs):
     """Bootstrap procedure for shared species estimation."""
-    rnd = np.random.RandomState(kwargs.get('seed', None))
+    rnd = copia.utils.check_random_state(kwargs.get('seed', None))
     z_score = stats.norm.ppf((1 + conf) / 2)
     
-    # Get bootstrap probabilities and generate samples
-    pseen1, pseen2, n1, n2 = bt_prob_shared(s1, s2)
+    # Get bootstrap probabilities and generate samples. The placement of the undetected
+    # species is seeded on its own: with an integer seed, the results are then those of
+    # earlier versions, in which it followed np.random.seed(seed).
+    pseen1, pseen2, n1, n2 = bt_prob_shared(s1, s2, seed=kwargs.get('seed', None))
     
     # Get original estimates for reference
     orig_est = fn(s1, s2)

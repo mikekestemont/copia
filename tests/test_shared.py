@@ -2,6 +2,7 @@ import pytest
 import warnings
 
 import numpy as np
+from copia.bootstrap import bt_prob_shared
 from copia.data import to_copia_dataset
 import copia.estimators
 import copia.diversity
@@ -133,4 +134,76 @@ def test_shared():
             f"CI check failed for {name}, UCL: "
             f"estimate ({ucl:.2f})"
         )
-                  
+
+
+def shared_example(data_type='abundance', T=(None, None)):
+    s1 = np.array([1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 0, 0, 1, 2, 4, 1, 1, 2, 2])
+    s2 = np.array([1, 1, 2, 1, 3, 2, 2, 1, 1, 1, 4, 2, 1, 0, 0, 2, 1, 2, 2, 3])
+    return [to_copia_dataset(s, data_type=data_type, input_type='counts',
+                             n_sampling_units=t, remove_zeros=False)
+            for s, t in zip((s1, s2), T)]
+
+
+def test_shared_seed():
+    s1, s2 = shared_example()
+    kwargs = dict(CI=True, n_iter=50)
+    reference = copia.estimators.chao_shared(s1, s2, seed=1, **kwargs)
+    # the seed alone fixes the result, whatever the state of the global generator
+    for global_seed in range(5):
+        np.random.seed(global_seed)
+        assert copia.estimators.chao_shared(s1, s2, seed=1, **kwargs) == reference
+    assert copia.estimators.chao_shared(s1, s2, seed=np.int64(1), **kwargs) == reference
+    assert copia.estimators.chao_shared(s1, s2, seed=2, **kwargs) != reference
+
+    # the wrapper passes its arguments on
+    def wrapper(**kw):
+        return copia.estimators.diversity(s1, s2, method='chao_shared', CI=True, **kw)
+    assert wrapper(n_iter=50, seed=1) == reference
+    assert wrapper(n_iter=60, seed=1) != reference
+    assert wrapper(n_iter=50, seed=1, conf=0.5)['CI'] != reference['CI']
+
+
+def test_shared_earlier_versions():
+    """
+    With an integer seed, the results of earlier versions after np.random.seed(seed): the
+    undetected species are placed with the global generator, and the samples are drawn
+    with a generator of their own. (Redone here, since seeded samples with probabilities
+    of zero differ between versions of NumPy.)
+    """
+    s1, s2 = shared_example()
+    for seed in (1, 573861):
+        np.random.seed(seed)
+        p1, p2, n1, n2 = bt_prob_shared(s1.counts, s2.counts, seed=np.random)
+        rnd = np.random.RandomState(seed)
+        totals = []
+        for _ in range(50):
+            sample = [to_copia_dataset(rnd.multinomial(int(n), p / np.sum(p)),
+                                       input_type='counts', remove_zeros=False)
+                      for n, p in ((n1, p1), (n2, p2))]
+            totals.append(copia.estimators.chao_shared(*sample)['total'])
+        ci = copia.estimators.chao_shared(s1, s2, CI=True, n_iter=50, seed=seed)['CI']['total']
+        assert np.allclose([ci['lower'], ci['upper']], np.percentile(totals, [2.5, 97.5]))
+
+
+def test_shared_incidence():
+    """
+    Reference values: SpadeR 0.1.1 (PanEstFun and, for incidence data,
+    PanEstFun.Sam), with the numbers of sampling units as sample sizes.
+    """
+    s1, s2 = shared_example()
+    assert np.isclose(copia.estimators.chao_shared(s1, s2)['total'], 25.16276, atol=1e-5)
+    s1, s2 = shared_example(data_type='incidence', T=(8, 6))
+    assert np.isclose(copia.estimators.chao_shared(s1, s2)['total'], 23.947917, atol=1e-5)
+    with pytest.raises(NotImplementedError):
+        copia.estimators.chao_shared(s1, s2, CI=True, n_iter=10)
+
+
+def test_shared_unobserved():
+    # the interval and standard error of a sum, not the sum of those of its three parts
+    s1, s2 = shared_example()
+    result = copia.estimators.chao_shared(s1, s2, CI=True, n_iter=500, seed=1)
+    parts = ['f0+', 'f+0', 'f00']
+    assert np.isclose(result['unobs_shared'], sum(result[p] for p in parts))
+    ci = result['CI']
+    assert ci['unobs_shared']['lower'] > sum(ci[p]['lower'] for p in parts)
+    assert ci['unobs_shared']['upper'] < sum(ci[p]['upper'] for p in parts)

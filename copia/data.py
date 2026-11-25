@@ -12,6 +12,12 @@ class CopiaData:
     n: int
     counts: np.ndarray
 
+    @property
+    def sample_size(self):
+        """The sample size that enters the estimators: the number of individuals
+        (n) for abundance data, the number of sampling units (T) for incidence data."""
+        return self.n
+
 
 @dataclass(slots=True, frozen=True)
 class AbundanceData(CopiaData):
@@ -21,6 +27,10 @@ class AbundanceData(CopiaData):
 @dataclass(slots=True, frozen=True)
 class IncidenceData(CopiaData):
     T: int
+
+    @property
+    def sample_size(self):
+        return self.T
     
 
 def to_abundance_counts(data, input_type="observations", index_column=None,
@@ -254,6 +264,8 @@ def to_copia_dataset(
         The title for the dataset.
     description : str, optional
         A description for the dataset.
+    n_sampling_units : int, optional
+        The number of sampling units (T). Required for incidence data.
     remove_zeros : bool, optional (default = True)
         Whether to remove zero counts from ds.counts (set to False for aligned datasets)
     
@@ -295,6 +307,8 @@ def to_copia_dataset(
     S_obs = counts[counts > 0].shape[0]
 
     if data_type.strip().lower() == 'incidence':
+        if n_sampling_units is None:
+            raise ValueError("n_sampling_units is required for incidence data")
         ds = IncidenceData(
             S_obs=S_obs, f1=f1, f2=f2, T=n_sampling_units, n=n, counts=counts)
     else:

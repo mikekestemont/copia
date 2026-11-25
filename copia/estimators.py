@@ -16,16 +16,24 @@ from copia.data import AbundanceData, IncidenceData
 import copia.stats as stats
 
 
+def empirical(ds: AbundanceData):
+    r"""
+    Empirical (observed) species richness, without bias correction
+    """
+    return ds.S_obs
+
+
 def chao1(ds: AbundanceData):
     r"""
-    Chao1 estimate of bias-corrected species richness.
-    Formulas taken from Chao & Jost (2012), p. 2538.
+    Chao1 (abundance data) or Chao2 (incidence data) estimate of
+    bias-corrected species richness. Formulas taken from Chao & Jost
+    (2012), p. 2538.
 
     Parameters
     ----------
-    x : 1D numpy array with shape (number of species)
-        An array representing the abundances (observed
-        counts) for each individual species.
+    ds : AbundanceData or IncidenceData
+        The observed counts for each individual species: numbers of
+        individuals (Chao1) or numbers of sampling units (Chao2).
 
     Returns
     -------
@@ -43,7 +51,9 @@ def chao1(ds: AbundanceData):
               the sample (singletons),
             - :math:`f_2` = the number of species that were sighted twice
               (doubletons)
-            - :math:`n` = the observed, total sample size.
+            - :math:`n` = the sample size: the number of individuals for
+              abundance data, the number of sampling units (:math:`T`) for
+              incidence data.
             - :math:`S` = the observed number of distinct species.
             - :math:`\hat{f_0}` = the estimated lower bound for the number
               of species that do exist in the assemblage, but which were
@@ -53,12 +63,14 @@ def chao1(ds: AbundanceData):
     ----------
     - A. Chao, 'Non-parametric estimation of the classes in a population',
       Scandinavian Journal of Statistics (1984), 265-270.
+    - A. Chao, 'Estimating the population size for capture-recapture data
+      with unequal catchability', Biometrics (1987), 783-791.
     - A. Chao & Jost, 'Coverage-based rarefaction and extrapolation:
       standardizing samples by completeness rather than size', Ecology (2012),
       2533–2547.
     """
 
-    f1, f2, n, S_obs = ds.f1, ds.f2, ds.n, ds.S_obs
+    f1, f2, n, S_obs = ds.f1, ds.f2, ds.sample_size, ds.S_obs
     if f2 > 0:
         S_est = S_obs + (n - 1) / n * (f1**2 / (2 * f2))
     else:
@@ -68,13 +80,14 @@ def chao1(ds: AbundanceData):
 
 def iChao1(ds: AbundanceData):
     r"""
-    "Improved" iChao1 estimate of bias-corrected species richness
+    "Improved" iChao1 (abundance data) or iChao2 (incidence data) estimate
+    of bias-corrected species richness
 
     Parameters
     ----------
-    x : 1D numpy array with shape (number of species)
-        An array representing the abundances (observed
-        counts) for each individual species.
+    ds : AbundanceData or IncidenceData
+        The observed counts for each individual species: numbers of
+        individuals (iChao1) or numbers of sampling units (iChao2).
 
     Returns
     -------
@@ -84,6 +97,13 @@ def iChao1(ds: AbundanceData):
 
     Note
     ----
+        As in the original paper (equations 10b and 13) and SpadeR, the
+        factors in the sample size, (n - 3) / n and (n - 3) / (n - 1),
+        are applied to incidence data only (with the number of sampling
+        units T as n): they are close to 1 for the numbers of individuals
+        in abundance data, but not for a small T. With T <= 3 sampling
+        units, iChao2 equals Chao2.
+
         We follow the original paper's recommendation to add 1
         to f4, if there are no quadrupletons in the assemblage,
         so that iChao1 is always obtainable. A user warning will be
@@ -97,6 +117,12 @@ def iChao1(ds: AbundanceData):
     """
 
     ch1 = chao1(ds)
+    a = b = 1
+    if isinstance(ds, IncidenceData):
+        if ds.T <= 3:
+            return ch1
+        a, b = (ds.T - 3) / ds.T, (ds.T - 3) / (ds.T - 1)
+
     f1, f2, counts = ds.f1, ds.f2, ds.counts
     f3 = np.count_nonzero(counts == 3)
     f4 = np.count_nonzero(counts == 4)
@@ -105,7 +131,7 @@ def iChao1(ds: AbundanceData):
         warnings.warn("Add-one smoothing for f4 = 0", UserWarning)
         f4 += 1
 
-    iCh1 = ch1 + (f3 / (4 * f4)) * np.max((f1 - ((f2 * f3) / (2 * f4)), 0))
+    iCh1 = ch1 + a * (f3 / (4 * f4)) * np.max((f1 - b * ((f2 * f3) / (2 * f4)), 0))
     return iCh1
 
 
@@ -189,8 +215,10 @@ def ace(ds: AbundanceData, k=10):
         - Regarding k, we follow the recommendation from the
           "EstimateS" package and assume that the upper limit
           for considering a species "rare" is 10 observations.
-        - Our implementation mirrors that in the "fossil" R
-          package (https://cran.r-project.org/web/packages/fossil).
+        - Our implementation gives the same results as the R packages
+          "SpadeR" and "vegan". The "fossil" package (0.3.7), which it
+          mirrored before, sums i * f_i instead of i * (i - 1) * f_i in
+          the coefficient of variation.
 
     Returns
     -------
@@ -205,17 +233,14 @@ def ace(ds: AbundanceData, k=10):
     - R.K. Colwell & J.E. Elsensohn, 'EstimateS turns 20: statistical
       estimation of species richness and shared species from samples,
       with non-parametric extrapolation', Ecography 37 (2014), 609–613.
-    - M.J. Vavrek, 'fossil: palaeoecological and palaeogeographical
-      analysis tools', Palaeontologia Electronica 14 (2011), 1T.
     """
 
-    x, f1 = ds.counts, ds.f1
-    nr = sum(x[x <= k])
-    sa = np.count_nonzero(x > k)
-    sr = np.count_nonzero(x <= k)
+    x, f1 = ds.counts[ds.counts > 0], ds.f1
+    rare = x[x <= k]
+    nr, sr = rare.sum(), len(rare)
+    sa = len(x) - sr
     ca = 1 - (f1 / nr)
-    sumf = np.sum([i * (x == i).sum() for i in range(1, k + 1)])
-    g2a = np.max((sr / ca) * (sumf / (nr * (nr - 1))) - np.array((1.0, 0.0)))
+    g2a = max((sr / ca) * (np.sum(rare * (rare - 1)) / (nr * (nr - 1))) - 1, 0)
     S = sa + sr / ca + (f1 / ca) * g2a
     return S
 
@@ -360,12 +385,12 @@ def chao_shared(ds1: AbundanceData, ds2: AbundanceData, CI=False, **kwargs):
 
     Parameters
     ----------
-    s1 : 1D Numpy array 
-        Representing the observed counts for each individual species in the 
-        *first* assemblage. (Should have the same length as `s2`.)
-    s2 : 1D Numpy array
-        Representing the observed counts for each individual species in the 
-        *second* assemblage. (Should have the same length as `s1`.)
+    ds1 : AbundanceData or IncidenceData
+        The observed counts for each individual species in the *first*
+        assemblage. (Should have the same length as `ds2`.)
+    ds2 : AbundanceData or IncidenceData
+        The observed counts for each individual species in the *second*
+        assemblage. (Should have the same length as `ds1`.)
     CI : bool, default=False
         Whether to return the confidence interval for the estimates
         **kwargs : dict
@@ -374,12 +399,8 @@ def chao_shared(ds1: AbundanceData, ds2: AbundanceData, CI=False, **kwargs):
             Confidence level for intervals
         - n_iter : int, default=1000
             Number of bootstrap iterations
-        - n_jobs : int, default=1
-            Number of parallel jobs
         - seed : int or None
             Random seed
-        - disable_pb : bool, default=False
-            Whether to disable progress bar
 
     Returns
     -------
@@ -415,8 +436,11 @@ def chao_shared(ds1: AbundanceData, ds2: AbundanceData, CI=False, **kwargs):
     Notes
     -------
         - No integer rounding is performed on the estimates.
-        - The code accounts for edge cases where the counts
-          of rare species categories (e.g. $f_2$) might be zero.
+        - The estimate is the lower bound of Pan et al. (2009, equation 3.6),
+          "Chao1-shared" in SpadeR, as long as f2+, f+2 and f22 are all
+          positive. If one of them is zero, it is set to 1, as in the R code
+          of Chao et al. (2017), where Pan et al. (equation 3.7) and SpadeR
+          switch to a bias-corrected form.
         - The CIs are clamped to the positive realm, so that
           both upper and lower CIs are guarenteed to be >=0.
     
@@ -435,22 +459,16 @@ def chao_shared(ds1: AbundanceData, ds2: AbundanceData, CI=False, **kwargs):
 
     Confidence intervals
     -------
-    The calculation of the CIs is based on a bootstrap appraoch. For the total
-    shared, a log-transformation is used to obtain CI, so that LCL
-    is greater than the observed shared species; see Chao et al. (1987,
-    Biometrics, Eq. 12) for the transformation and formula. The resulting CI
-    is generally asymmetric. However, such a transformation cannot be applied
-    to the CI construction for f0+, f+0 and f00 because these three values
-    are not observable in data. Thus for these three terms, CIs are still
-    based on a symmetric interval. Thus, the lower CI may become negative due
-    to data sparsity (i.e., mainly due to large s.e.). This function truncates
-    any negative values in the CIs. The calculation for the CIs is to be credited
-    to Anne Chao.
+    The CIs are percentiles of the bootstrap estimates, except for obs_shared,
+    which has a symmetric interval around the observed number. The bootstrap
+    follows the R code of Anne Chao. It resamples individuals, so that CIs are
+    available for abundance data only.
 
     References
     -------
-    - Chao, Anne, Estimating the population size for capture-recapture data
-      with unequal catchability. Biometrics (1987), 783-791.
+    - Pan, H.-Y., Chao, A. & Foissner, W. 'A nonparametric lower bound for the
+      number of species shared by multiple communities', Journal of Agricultural,
+      Biological, and Environmental Statistics (2009), 452-468.
     - Chao, Anne, et al. 'Deciphering the Enigma of Undetected
       Species, Phylogenetic, and Functional Diversity Based on Good-Turing
       Theory.' Ecology (2017), 2914-2929.
@@ -460,12 +478,14 @@ def chao_shared(ds1: AbundanceData, ds2: AbundanceData, CI=False, **kwargs):
     """
 
     s1, s2 = ds1.counts, ds2.counts
+    n1, n2 = ds1.sample_size, ds2.sample_size
     assert len(s1) == len(s2)
-    
+
+    if CI and not all(isinstance(ds, AbundanceData) for ds in (ds1, ds2)):
+        raise NotImplementedError(
+            "Confidence intervals for shared species need abundance data")
+
     def _estimate_shared(s1, s2):
-        n1 = np.sum(s1)
-        n2 = np.sum(s2)
-        
         # Compute f0+
         f1p = np.sum((s1 == 1) & (s2 > 0))
         f2p = np.sum((s1 == 2) & (s2 > 0))
@@ -482,16 +502,17 @@ def chao_shared(ds1: AbundanceData, ds2: AbundanceData, CI=False, **kwargs):
         f00 = ((n1 - 1) / n1) * ((n2 - 1) / n2) * (f11**2 / (4 * max(f22, 1))) if f11 > 0 else 0
 
         obs_shared = np.sum((s1 > 0) & (s2 > 0))
-        S = obs_shared + f0p + fp0 + f00
+        unobs_shared = f0p + fp0 + f00
 
-        return np.array([S, obs_shared, f0p, fp0, f00])
+        return np.array([obs_shared + unobs_shared, obs_shared, f0p, fp0, f00,
+                         unobs_shared])
     
     # Point estimates:
     estimates = _estimate_shared(s1, s2)
     result = {
         "total": estimates[0],
         "obs_shared": estimates[1],
-        "unobs_shared": sum(estimates[2:]),
+        "unobs_shared": estimates[5],
         "f0+": estimates[2],
         "f+0": estimates[3],
         "f00": estimates[4]
@@ -507,7 +528,7 @@ def chao_shared(ds1: AbundanceData, ds2: AbundanceData, CI=False, **kwargs):
             "CI": {
                 "total": {"lower": lci[0], "upper": uci[0]},
                 "obs_shared": {"lower": lci[1], "upper": uci[1]},
-                "unobs_shared": {"lower": sum(lci[2:]), "upper": sum(uci[2:])},
+                "unobs_shared": {"lower": lci[5], "upper": uci[5]},
                 "f0+": {"lower": lci[2], "upper": uci[2]},
                 "f+0": {"lower": lci[3], "upper": uci[3]},
                 "f00": {"lower": lci[4], "upper": uci[4]}
@@ -515,7 +536,7 @@ def chao_shared(ds1: AbundanceData, ds2: AbundanceData, CI=False, **kwargs):
             "se": {
                 "total": est_sd[0],
                 "obs_shared": est_sd[1],
-                "unobs_shared": np.sqrt(np.sum(est_sd[2:]**2)),
+                "unobs_shared": est_sd[5],
                 "f0+": est_sd[2],
                 "f+0": est_sd[3],
                 "f00": est_sd[4]
@@ -538,9 +559,11 @@ def min_add_sample(ds: AbundanceData, solver="grid", search_space=(0, 100, 1e6),
 
     Parameters
     ----------
-    x : array-like, with shape (number of species)
-        An array representing the abundances (observed
-        counts) for each individual species.
+    ds : AbundanceData or IncidenceData
+        The observed counts for each individual species. The estimate is
+        a number of individuals for abundance data and a number of
+        sampling units for incidence data (:math:`T` then replaces
+        :math:`n` below; Chao et al. 2009, eq. 14).
     solver : str (default = 'grid')
         Solver to find x* = the intersection between h() and v():
             - 'grid': hardcode grid search (slower, but recommended)
@@ -583,10 +606,13 @@ def min_add_sample(ds: AbundanceData, solver="grid", search_space=(0, 100, 1e6),
     if solver not in ('grid', 'fsolve'):
         raise ValueError(f'Unsupported "solver" argument: {solver}')
 
-    n, f1, f2 = ds.n, ds.f1, ds.f2
+    n, f1, f2 = ds.sample_size, ds.f1, ds.f2
+    rate = 2 * f2 / f1
+    if isinstance(ds, IncidenceData): # Chao et al. (2009), eq. 14
+        rate = 2 * f2 / ((1 - 1 / n) * f1 + 2 * f2 / n)
 
     h = lambda x: 2 * f1 * (1 + x)
-    v = lambda x: np.exp(x * (2 * f2 / f1))
+    v = lambda x: np.exp(x * rate)
 
     if solver == "fsolve":
         def intersection(func1, func2, x0):
@@ -719,6 +745,7 @@ def ztnb(ds: AbundanceData):
 
 
 ESTIMATORS = {
+    "empirical": empirical,
     "chao1": chao1,
     "ichao1": iChao1,
     "egghe_proot": egghe_proot,
@@ -747,7 +774,9 @@ def diversity(
         species estimation.
     method : str (default = None)
         One estimator of:
-            - 'chao1'
+            - 'chao1' (Chao2 on incidence data)
+            - 'ichao1' (iChao2 on incidence data)
+            - 'ace'
             - 'egghe_proot'
             - 'jackknife'
             - 'minsample'
@@ -769,16 +798,15 @@ def diversity(
     Consult the documentation of selected method.
     """
 
-    if method is not None and method.lower() not in ESTIMATORS:
+    method = "empirical" if method is None else method.lower()
+
+    if method not in ESTIMATORS:
         raise ValueError(f"Unknown estimation method `{method}`.")
 
-    if method is None:
-        method = "empirical"
-
-    method = method.lower()
-
     if method == "chao_shared":
-        estimate = ESTIMATORS[method](ds, ds2, CI=CI)
+        estimate = ESTIMATORS[method](
+            ds, ds2, CI=CI, conf=conf, n_iter=n_iter, n_jobs=n_jobs,
+            seed=seed, disable_pb=disable_pb, **kwargs)
     elif CI and method != 'jackknife':
         if isinstance(ds, AbundanceData):
             bootstrap_fn = bootstrap_abundance_data
@@ -789,7 +817,7 @@ def diversity(
                 "ds must be an instance of AbundanceData or IncidenceData")
         estimate = bootstrap_fn(
             ds, fn=partial(ESTIMATORS[method], **kwargs),
-            n_iter=n_iter, n_jobs=n_jobs, seed=seed, disable_pb=disable_pb
+            n_iter=n_iter, conf=conf, n_jobs=n_jobs, seed=seed, disable_pb=disable_pb
         )
     elif CI and method == 'jackknife':
         estimate = ESTIMATORS[method](ds, CI=CI,
@@ -799,6 +827,6 @@ def diversity(
 
     return estimate
 
-__all__ = ['chao1', 'iChao1', 'egghe_proot',
+__all__ = ['empirical', 'chao1', 'iChao1', 'egghe_proot',
            'ace', 'jackknife', 'min_add_sample',
            'diversity', 'chao_shared', 'ztnb']
