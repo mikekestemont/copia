@@ -13,10 +13,17 @@ def published(*freqs):
     return {format(i, f"0{t}b"): n for i, n in enumerate(freqs, start=1)}
 
 
+# The data in Chao, A. et al., 'The applications of capture-recapture models to
+# epidemiological data', Statistics in Medicine (2001), Tables II and V:
+
 # Hepatitis A in a college in Taiwan, 1995: serum tests (P), hospital records (Q) and
 # epidemiologists (E); Chao, D. et al., Epidemiology Bulletin (1997); data set HAV of
-# the R package CARE1, analysed in Chao et al. (2001).
+# the R package CARE1. A later screening put the number of cases at about 545.
 HAV = published(63, 55, 18, 69, 17, 21, 28)
+
+# Spina bifida: birth certificates (B), death certificates (D), rehabilitation files (M);
+# Hook, Albright & Cross (1980).
+SPINA_BIFIDA = published(60, 49, 4, 247, 112, 142, 12)
 
 # Diabetes in a community in Italy, four lists; Bruno, G. et al., 'National diabetes
 # programs', Diabetes Care 17 (1994), 548; data set Diabetes of CARE1.
@@ -118,12 +125,51 @@ def test_care1(data, coverage, independent, high, low):
 
 
 @pytest.mark.filterwarnings("ignore:The sample coverage")
-def test_care1_published():
+@pytest.mark.parametrize("data, coverage, estimates, dependences", [
+    (HAV, 0.513, (407, 971, 508),
+     ((0.21, 0.08, 0.22), (1.89, 1.57, 1.91), (0.51, 0.34, 0.52))),
+    (SPINA_BIFIDA, 0.654, (775, 752, 767),
+     ((0.12, 0.00, -0.68), (0.09, -0.03, -0.69), (0.11, -0.01, -0.68))),
+    (DIABETES, 0.803, (2272, 2609, 2458),
+     ((-0.03, 0.04, 0.00, 0.10, 1.82), (0.11, 0.19, 0.15, 0.27, 2.24),
+      (0.04, 0.12, 0.09, 0.19, 2.05))),
+    (CONGENITAL, 0.774, (630, 659, 649),
+     ((0.28, 1.20, -0.07, 0.08, 0.14, 0.15, 0.01, 0.06, 0.04, -0.33),
+      (0.34, 1.30, -0.03, 0.13, 0.19, 0.20, 0.06, 0.11, 0.09, -0.29),
+      (0.32, 1.27, -0.04, 0.11, 0.17, 0.18, 0.04, 0.10, 0.07, -0.30))),
+])
+def test_care1_2001(data, coverage, estimates, dependences):
     """
-    Estimates as published: N-hat for the hepatitis cases (Table 5 of arXiv:2105.08679,
-    'SC'), and N-hat-1 = 2,394 (2,221-2,604) and N-hat = 3,405 for the wasps.
+    The output of CARE-1 printed in Chao et al. (2001): sample coverage, N-hat-0, N-hat and
+    N-hat-1, and the dependences they imply, in the order of the pairs. (The last pair of
+    the diabetes data is cut off there.)
     """
-    assert round(care1(lists(HAV))) == 971
+    ds = lists(data)
+    assert round(list_coverage(ds), 3) == coverage
+    for variant, estimate, gammas in zip(("independent", "high", "low"), estimates, dependences):
+        assert round(care1(ds, variant=variant)) == estimate
+        assert np.allclose(dependence(ds, variant=variant)["est"][:len(gammas)], gammas, atol=0.0051)
+
+
+def test_pairs_2001():
+    """
+    Petersen and Chapman estimates for the spina bifida data, with standard errors and
+    intervals, in Chao et al. (2001).
+    """
+    ds = lists(SPINA_BIFIDA)
+    for pair, petersen, *chapman in (((1, 2), 690, 689, 23, 651, 743),
+                                     ((1, 3), 778, 776, 35, 718, 857),
+                                     ((2, 3), 2432, 2311, 498, 1554, 3556)):
+        estimate = lincoln_petersen(ds, lists=pair, CI=True)
+        assert [round(estimate[k]) for k in ("est", "se", "lci", "uci")] == chapman
+        assert round(lincoln_petersen(ds, lists=pair, chapman=False)) == petersen
+
+
+@pytest.mark.filterwarnings("ignore:The sample coverage")
+def test_care1_wasps():
+    """
+    N-hat-1 = 2,394 (2,221-2,604) and N-hat = 3,405 for the wasps, as published.
+    """
     ds = lists(WASPS)
     assert ds.S_obs == 1414
     assert round(care1(ds)) == 3405

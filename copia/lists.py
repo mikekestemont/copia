@@ -143,8 +143,10 @@ def care1(ds: ListData, variant="high", CI=False, conf=0.95, n_iter=1000, seed=N
         One of the estimators:
             - 'high' (:math:`\hat{N}`): for a sufficiently high sample coverage.
             - 'low' (:math:`\hat{N}_1`): one-step estimator for a low sample
-              coverage (below about 55%), and a lower bound if the lists are
-              positively dependent.
+              coverage, and a lower (upper) bound if the lists are positively
+              (negatively) dependent. It is recommended if the coverage is below
+              55%, or if the standard error of :math:`\hat{N}` is more than one
+              third of the estimate.
             - 'independent' (:math:`\hat{N}_0`): for independent lists.
     CI : bool (default = False)
         Whether to return the standard error and the confidence interval.
@@ -183,9 +185,11 @@ def care1(ds: ListData, variant="high", CI=False, conf=0.95, n_iter=1000, seed=N
 
     Note
     ----
-    The formulas, and their form for more than three lists, are those of the R
-    package CARE1 1.1.0 (which refers to equations 9, 12 and 13 in Chao et al. 2001).
-    Its results are reproduced.
+    The formulas are equations 7 to 13 (three lists) and 14 to 17 (any number) in
+    Chao et al. (2001). The bootstrap is that of the R package CARE1 1.1.0. With three
+    lists, its standard errors of :math:`\hat{N}` and :math:`\hat{N}_1` are not those
+    printed in Chao et al. (2001), e.g. 48 and not 40 for :math:`\hat{N}_1` in their
+    first example.
 
     References
     ----------
